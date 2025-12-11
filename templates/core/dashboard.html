@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row g-4">
+    <!-- Colonna Sinistra: Riepilogo Soldi e Azioni -->
+    <div class="col-lg-4">
+
+        <!-- Card "Da Pagare" -->
+        <div class="card mb-4 text-center border-left-danger">
+            <div class="card-body py-5">
+                <h6 class="text-uppercase text-muted mb-2">Totale da Saldare</h6>
+                {% if da_pagare > 0 %}
+                    <h1 class="display-4 fw-bold text-danger">€ {{ da_pagare }}</h1>
+                    <p class="small text-muted">Per lezioni confermate</p>
+                {% else %}
+                    <h1 class="display-4 fw-bold text-success">€ 0,00</h1>
+                    <p class="small text-success"><i class="bi bi-check-circle-fill"></i> Tutto saldato!</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Bottone Prenota -->
+        <a href="{% url 'prenota' %}" class="btn btn-primary w-100 py-3 mb-3 shadow">
+            <i class="bi bi-calendar-plus me-2"></i> PRENOTA NUOVA LEZIONE
+        </a>
+    </div>
+
+    <!-- Colonna Destra: Storico -->
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                <h6 class="m-0 font-weight-bold text-primary">Le tue Lezioni</h6>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th>Luogo</th>
+                                <th>Prezzo</th>
+                                <th>Stato</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for lezione in lezioni %}
+                            <tr>
+                                <td class="fw-bold">{{ lezione.data_inizio|date:"d M Y, H:i" }}</td>
+                                <td><small class="text-muted">{{ lezione.get_luogo_display }}</small></td>
+                                <td>€ {{ lezione.prezzo }}</td>
+                                <td>
+                                    {% if lezione.pagata %}
+                                        <span class="badge bg-success"><i class="bi bi-cash-coin"></i> Pagata</span>
+                                    {% else %}
+                                        {% if lezione.stato == 'CONFERMATA' %}
+                                            <span class="badge bg-danger">Da Pagare</span>
+                                        {% elif lezione.stato == 'RIFIUTATA' %}
+                                            <span class="badge bg-secondary">Rifiutata</span>
+                                        {% else %}
+                                            <span class="badge bg-warning text-dark">In attesa</span>
+                                        {% endif %}
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center py-4 text-muted">
+                                    Non hai ancora fatto lezioni. Prenota la prima!
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

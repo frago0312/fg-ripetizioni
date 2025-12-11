@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card shadow-lg">
+            <div class="card-header bg-primary text-white">
+                <i class="bi bi-calendar-check"></i> Richiedi Lezione
+            </div>
+            <div class="card-body p-4">
+
+                <form method="post">
+                    {% csrf_token %}
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Giorno</label>
+                            {{ form.data }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Orario Inizio</label>
+                            {{ form.ora }}
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Durata (Ore)</label>
+                            <!-- Nota: step="0.5" permette di selezionare 1.5, 2.0, 2.5 -->
+                            {{ form.durata_ore }}
+                            <div class="form-text">Minimo 0.5 (mezz'ora). Usa la virgola o il punto.</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Dove?</label>
+                            {{ form.luogo }}
+                        </div>
+                    </div>
+
+                    <!-- Nuova Legenda Zone -->
+                    <div class="alert alert-light border mt-2">
+                        <strong><i class="bi bi-geo-alt"></i> Info costi:</strong>
+                        <ul class="mb-2 ps-3 mt-1 small">
+                            <li>Online o a casa mia: <span class="text-success fw-bold">tariffa Base (10€/h)</span></li>
+                            <li>Rufina paese: <span class="text-primary fw-bold">+2€</span></li>
+                            <li>Entro 15 min (Montebonello, Pomino...): <span class="text-warning text-dark fw-bold">+4€</span></li>
+                            <li>Entro 30 min (Pontassieve, Londa...): <span class="text-danger fw-bold">+8€</span></li>
+                        </ul>
+                        <div class="border-top pt-2">
+                            <p class="small text-muted mb-0 fst-italic">
+                                * I minuti si intendono come <strong>tempo totale di viaggio (andata + ritorno)</strong> partendo da Rufina.<br>
+                                Se hai dubbi su quale tariffa selezionare, contattami pure per chiarimenti!
+                            </p>
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">Note (Opzionale)</label>
+                        {{ form.note }}
+                    </div>
+
+                    <!-- Mostra errori globali (es. orario non disponibile) -->
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {% for error in form.non_field_errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            Invia Richiesta
+                        </button>
+                    </div>
+                </form>
+
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
