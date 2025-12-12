@@ -55,3 +55,20 @@ class Lezione(models.Model):
     class Meta:
         verbose_name_plural = "Lezioni"
         ordering = ['-data_inizio']
+
+
+class Disponibilita(models.Model):
+    GIORNI = [
+        (0, 'Lunedì'), (1, 'Martedì'), (2, 'Mercoledì'),
+        (3, 'Giovedì'), (4, 'Venerdì'), (5, 'Sabato'), (6, 'Domenica')
+    ]
+    giorno = models.IntegerField(choices=GIORNI, unique=True)
+    ora_inizio = models.TimeField(help_text="Ora di inizio disponibilità (es. 14:30)")
+    ora_fine = models.TimeField(help_text="Ora di fine disponibilità (es. 19:00)")
+
+    def __str__(self):
+        return f"{self.get_giorno_display()} ({self.ora_inizio.strftime('%H:%M')} - {self.ora_fine.strftime('%H:%M')})"
+
+    class Meta:
+        verbose_name_plural = "Disponibilità"
+        ordering = ['giorno']

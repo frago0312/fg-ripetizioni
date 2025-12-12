@@ -27,4 +27,5 @@ urlpatterns = [
     path('register/', views.registrazione, name='register'),
     path('', views.dashboard, name='dashboard'),
     path('prenota/', views.prenota, name='prenota'),
+    path('htmx/get-orari/', views.get_orari_disponibili, name='get_orari'),
 ]

@@ -1,27 +1,13 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
-from .models import Lezione
+from .models import Lezione, Disponibilita
 import datetime
 from django.utils import timezone
 from datetime import timedelta
 
-# --- 1. CONFIGURAZIONE DISPONIBILITÀ (0=Lun, 6=Dom) ---
-ORARI_SETTIMANALI = {
-    0: ['14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30', '18:00', '18:30', '19:00'],
-    1: ['09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '14:00', '14:30', '15:00', '15:30'],
-    2: ['14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30', '18:00', '18:30'],
-    3: ['14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30', '18:00', '18:30'],
-    4: ['14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30', '18:00'],
-}
 
-TUTTI_ORARI = sorted(list(set([ora for lista in ORARI_SETTIMANALI.values() for ora in lista])))
-SCELTE_ORARI = [(ora, ora) for ora in TUTTI_ORARI]
-
-
-# --- 2. NUOVO FORM REGISTRAZIONE (CON EMAIL OBBLIGATORIA) ---
 class RegistrazioneForm(UserCreationForm):
-    # Sovrascriviamo i campi per renderli obbligatori e tradotti in italiano
     email = forms.EmailField(required=True, label="Indirizzo Email")
     first_name = forms.CharField(required=True, label="Nome")
     last_name = forms.CharField(required=True, label="Cognome")
@@ -31,14 +17,22 @@ class RegistrazioneForm(UserCreationForm):
         fields = ['username', 'email', 'first_name', 'last_name']
 
 
-# --- 3. FORM PRENOTAZIONE (CON LOGICA ORARI) ---
 class PrenotazioneForm(forms.ModelForm):
     data = forms.DateField(
-        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+        widget=forms.DateInput(attrs={
+            'type': 'date',
+            'class': 'form-control',
+            # QUI STA LA MAGIA HTMX:
+            'hx-get': '/htmx/get-orari/',
+            'hx-target': '#id_ora',
+            'hx-trigger': 'change'
+        }),
         label="Giorno Desiderato"
     )
+
+    # Inizialmente vuoto, verrà riempito da HTMX o dalla validazione
     ora = forms.ChoiceField(
-        choices=SCELTE_ORARI,
+        choices=[],
         widget=forms.Select(attrs={'class': 'form-select'}),
         label="Orario Inizio"
     )
@@ -52,6 +46,13 @@ class PrenotazioneForm(forms.ModelForm):
             'note': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Se c'è un input (POST), dobbiamo popolare le scelte dell'ora
+        # altrimenti Django dice "Scelta non valida"
+        if 'data' in self.data and 'ora' in self.data:
+            self.fields['ora'].choices = [(self.data['ora'], self.data['ora'])]
+
     def clean(self):
         cleaned_data = super().clean()
         data_scelta = cleaned_data.get("data")
@@ -62,19 +63,28 @@ class PrenotazioneForm(forms.ModelForm):
             orario_str = f"{data_scelta} {ora_scelta}"
             inizio_richiesto = datetime.datetime.strptime(orario_str, "%Y-%m-%d %H:%M")
             inizio_richiesto = timezone.make_aware(inizio_richiesto)
+
+            # Validazione: Controlla se il giorno è disponibile nel DB
+            giorno_sett = inizio_richiesto.weekday()
+            try:
+                disp = Disponibilita.objects.get(giorno=giorno_sett)
+            except Disponibilita.DoesNotExist:
+                raise forms.ValidationError("In questo giorno non faccio lezione (controlla Admin).")
+
+            # Controllo range orario
+            ora_inizio_disp = datetime.datetime.combine(data_scelta, disp.ora_inizio)
+            ora_fine_disp = datetime.datetime.combine(data_scelta, disp.ora_fine)
+
+            # Rendiamo offset-aware per il confronto
+            ora_inizio_disp = timezone.make_aware(ora_inizio_disp)
+            ora_fine_disp = timezone.make_aware(ora_fine_disp)
+
             fine_richiesta = inizio_richiesto + timedelta(hours=float(durata))
 
-            if inizio_richiesto < timezone.now():
-                raise forms.ValidationError("Non puoi prenotare nel passato!")
+            if inizio_richiesto < ora_inizio_disp or fine_richiesta > ora_fine_disp:
+                raise forms.ValidationError(f"Orario fuori disponibilità ({disp.ora_inizio} - {disp.ora_fine})")
 
-            weekday = inizio_richiesto.weekday()
-
-            if weekday not in ORARI_SETTIMANALI:
-                raise forms.ValidationError("In questo giorno non faccio lezione.")
-
-            if ora_scelta not in ORARI_SETTIMANALI[weekday]:
-                raise forms.ValidationError(f"Alle {ora_scelta} non sono disponibile. Controlla gli orari.")
-
+            # Controllo sovrapposizioni
             conflitti = Lezione.objects.filter(
                 stato__in=['RICHIESTA', 'CONFERMATA'],
                 data_inizio__lt=fine_richiesta,
@@ -84,7 +94,7 @@ class PrenotazioneForm(forms.ModelForm):
                 fine_lezione = lezione.data_inizio + timedelta(hours=float(lezione.durata_ore))
                 if inizio_richiesto < fine_lezione and fine_richiesta > lezione.data_inizio:
                     raise forms.ValidationError(
-                        f"Orario occupato ({lezione.data_inizio.strftime('%H:%M')} - {fine_lezione.strftime('%H:%M')}).")
+                        f"Orario occupato da un'altra lezione ({lezione.data_inizio.strftime('%H:%M')}).")
 
             cleaned_data['data_inizio_calcolata'] = inizio_richiesto
 

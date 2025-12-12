@@ -4,10 +4,13 @@ from django.db.models import Sum
 from django.contrib import messages
 from django.core.mail import send_mail
 from django.conf import settings
+from django.http import HttpResponse
+from datetime import datetime, timedelta, time
+from django.utils import timezone
 
 # IMPORTA IL NUOVO FORM DI REGISTRAZIONE
 from .forms import PrenotazioneForm, RegistrazioneForm
-from .models import Lezione
+from .models import Lezione, Disponibilita
 
 
 @login_required
@@ -69,3 +72,69 @@ def registrazione(request):
         form = RegistrazioneForm()
 
     return render(request, 'registration/register.html', {'form': form})
+
+
+def get_orari_disponibili(request):
+    data_str = request.GET.get('data')
+    if not data_str:
+        return HttpResponse("<option value=''>Seleziona prima una data</option>")
+
+    try:
+        data_scelta = datetime.strptime(data_str, "%Y-%m-%d").date()
+    except ValueError:
+        return HttpResponse("<option value=''>Data non valida</option>")
+
+    giorno_settimana = data_scelta.weekday()
+
+    # 1. Cerchiamo la tua disponibilità per quel giorno nel DB
+    try:
+        disp = Disponibilita.objects.get(giorno=giorno_settimana)
+    except Disponibilita.DoesNotExist:
+        return HttpResponse("<option value=''>Nessuna lezione in questo giorno</option>")
+
+    # 2. Generiamo gli slot di 30 minuti
+    orari_possibili = []
+    ora_corrente = datetime.combine(data_scelta, disp.ora_inizio)
+    ora_fine = datetime.combine(data_scelta, disp.ora_fine)
+
+    while ora_corrente < ora_fine:
+        orari_possibili.append(ora_corrente)
+        ora_corrente += timedelta(minutes=30)
+
+    # 3. Filtriamo quelli occupati
+    # Troviamo le lezioni confermate o in richiesta per quel giorno
+    lezioni_giorno = Lezione.objects.filter(
+        data_inizio__date=data_scelta,
+        stato__in=['RICHIESTA', 'CONFERMATA']
+    )
+
+    orari_liberi = []
+    for orario in orari_possibili:
+        occupato = False
+        # Rendiamo l'orario timezone-aware per il confronto
+        inizio_slot = timezone.make_aware(orario)
+        fine_slot = inizio_slot + timedelta(hours=1.0)  # Supponiamo durata minima 1h per il check, ma affiniamo sotto
+
+        for lezione in lezioni_giorno:
+            # Calcoliamo inizio e fine della lezione esistente
+            lezione_inizio = lezione.data_inizio
+            # Se la lezione non ha durata, assumiamo 1h per sicurezza
+            durata = float(lezione.durata_ore) if lezione.durata_ore else 1.0
+            lezione_fine = lezione_inizio + timedelta(hours=durata)
+
+            # Controllo sovrapposizione:
+            # Uno slot è occupato se inizia PRIMA che l'altra finisca E finisce DOPO che l'altra inizi
+            # Qui controlliamo solo l'inizio dello slot per semplicità
+            if lezione_inizio <= inizio_slot < lezione_fine:
+                occupato = True
+                break
+
+        if not occupato:
+            # Formattiamo l'orario per l'HTML (HH:MM)
+            str_orario = orario.strftime("%H:%M")
+            orari_liberi.append(f"<option value='{str_orario}'>{str_orario}</option>")
+
+    if not orari_liberi:
+        return HttpResponse("<option value=''>Tutto occupato!</option>")
+
+    return HttpResponse("".join(orari_liberi))
