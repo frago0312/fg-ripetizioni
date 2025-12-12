@@ -29,4 +29,7 @@ urlpatterns = [
     path('prenota/', views.prenota, name='prenota'),
     path('htmx/get-orari/', views.get_orari_disponibili, name='get_orari'),
     path('profilo/', views.profilo_view, name='profilo'),
+    path('dashboard-docente/', views.dashboard_docente, name='dashboard_docente'),
+    path('gestisci-lezione/<int:lezione_id>/<str:azione>/', views.gestisci_lezione, name='gestisci_lezione'),
+    path('elimina-chiusura/<int:chiusura_id>/', views.elimina_chiusura, name='elimina_chiusura'),
 ]

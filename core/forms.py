@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
-from .models import Lezione, Disponibilita, Profilo
+from .models import Lezione, Disponibilita, Profilo, GiornoChiusura
 import datetime
 from django.utils import timezone
 from datetime import timedelta
@@ -117,3 +117,23 @@ class ProfiloForm(forms.ModelForm):
             'indirizzo': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Via Roma 1, Firenze'}),
             'scuola': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Scuola e Classe'}),
         }
+
+
+class ChiusuraForm(forms.ModelForm):
+    class Meta:
+        model = GiornoChiusura
+        fields = ['data_inizio', 'data_fine', 'motivo']
+        widgets = {
+            'data_inizio': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'data_fine': forms.DateInput(attrs={'type': 'date', 'class': 'form-control', 'placeholder': 'Opzionale'}),
+            'motivo': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Es. Ferie'}),
+        }
+
+    def clean(self):
+        cleaned_data = super().clean()
+        inizio = cleaned_data.get("data_inizio")
+        fine = cleaned_data.get("data_fine")
+
+        # Se c'è una data fine, controlliamo che non sia antecedente all'inizio
+        if fine and fine < inizio:
+            self.add_error('data_fine', "La data fine non può essere prima dell'inizio!")

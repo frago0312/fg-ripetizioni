@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.core.mail import send_mail
 from django.conf import settings
-from .models import Lezione, Disponibilita, Profilo
+from .models import Lezione, Disponibilita, Profilo, GiornoChiusura
 
 # 1. Gestione Disponibilità (Orari)
 @admin.register(Disponibilita)
@@ -9,14 +9,20 @@ class DisponibilitaAdmin(admin.ModelAdmin):
     list_display = ('get_giorno_display', 'ora_inizio', 'ora_fine')
     ordering = ('giorno', 'ora_inizio')
 
-# 2. Gestione Profilo Studente (NUOVO)
-# Ti permette di vedere telefono e scuola direttamente dall'Admin
+# 2. Gestione Profilo Studente
 @admin.register(Profilo)
 class ProfiloAdmin(admin.ModelAdmin):
     list_display = ('user', 'telefono', 'scuola')
     search_fields = ('user__username', 'user__first_name', 'user__last_name', 'telefono')
 
-# 3. Gestione Lezioni (con invio Mail)
+# 3. Gestione Chiusure/Ferie (CORRETTO PER I NUOVI CAMPI)
+@admin.register(GiornoChiusura)
+class GiornoChiusuraAdmin(admin.ModelAdmin):
+    # Qui usiamo i nuovi nomi dei campi: data_inizio e data_fine
+    list_display = ('data_inizio', 'data_fine', 'motivo')
+    ordering = ('-data_inizio',)
+
+# 4. Gestione Lezioni (con invio Mail)
 @admin.register(Lezione)
 class LezioneAdmin(admin.ModelAdmin):
     list_display = ('studente', 'data_inizio', 'luogo', 'prezzo', 'stato', 'pagata')

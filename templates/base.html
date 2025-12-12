@@ -79,6 +79,15 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto align-items-center">
                     {% if user.is_authenticated %}
+
+                        {% if user.is_staff %}
+                            <li class="nav-item me-3">
+                                <a href="{% url 'dashboard_docente' %}" class="btn btn-warning btn-sm text-dark fw-bold shadow-sm">
+                                    <i class="bi bi-speedometer2"></i> DOCENTE
+                                </a>
+                            </li>
+                        {% endif %}
+
                         <li class="nav-item me-3">
                             <a href="{% url 'profilo' %}" class="nav-link-custom" title="Modifica i tuoi dati">
                                 <i class="bi bi-person-circle"></i> {{ user.username }}

@@ -7,10 +7,12 @@ from django.conf import settings
 from django.http import HttpResponse
 from datetime import datetime, timedelta, time
 from django.utils import timezone
+from django.utils.http import urlencode
+from django.contrib.admin.views.decorators import staff_member_required
 
 # IMPORTA IL NUOVO FORM DI REGISTRAZIONE
-from .forms import PrenotazioneForm, RegistrazioneForm, ProfiloForm
-from .models import Lezione, Disponibilita, Profilo
+from .forms import PrenotazioneForm, RegistrazioneForm, ProfiloForm, ChiusuraForm
+from .models import Lezione, Disponibilita, Profilo, GiornoChiusura
 
 
 @login_required
@@ -83,6 +85,14 @@ def get_orari_disponibili(request):
         data_scelta = datetime.strptime(data_str, "%Y-%m-%d").date()
     except ValueError:
         return HttpResponse("<option value=''>Data non valida</option>")
+
+    chiusura = GiornoChiusura.objects.filter(
+        data_inizio__lte=data_scelta,
+        data_fine__gte=data_scelta
+    ).first()
+
+    if chiusura:
+        return HttpResponse(f"<option value=''>Non disponibile: {chiusura.motivo or 'Chiuso'}</option>")
 
     giorno_settimana = data_scelta.weekday()
 
@@ -158,3 +168,107 @@ def profilo_view(request):
         form = ProfiloForm(instance=profilo)
 
     return render(request, 'core/profilo.html', {'form': form})
+
+
+# --- NUOVA VISTA: DASHBOARD DOCENTE ---
+@staff_member_required
+def dashboard_docente(request):
+    # Gestione salvataggio Form Chiusura
+    if request.method == 'POST' and 'btn_chiusura' in request.POST:
+        form_chiusura = ChiusuraForm(request.POST)
+        if form_chiusura.is_valid():
+            form_chiusura.save()
+            messages.success(request, "Periodo di chiusura aggiunto!")
+            return redirect('dashboard_docente')
+    else:
+        form_chiusura = ChiusuraForm()
+
+    oggi = timezone.now()
+
+    # Dati standard della dashboard
+    richieste = Lezione.objects.filter(stato='RICHIESTA').order_by('data_inizio')
+    future = Lezione.objects.filter(stato='CONFERMATA', data_inizio__gte=oggi).order_by('data_inizio')
+
+    inizio_mese = today = timezone.now().date().replace(day=1)
+    guadagno = \
+    Lezione.objects.filter(stato='CONFERMATA', data_inizio__gte=inizio_mese, pagata=True).aggregate(Sum('prezzo'))[
+        'prezzo__sum'] or 0
+
+    # Lista delle chiusure future (per poterle cancellare)
+    chiusure_future = GiornoChiusura.objects.filter(data_fine__gte=oggi.date()).order_by('data_inizio')
+
+    return render(request, 'core/dashboard_docente.html', {
+        'richieste': richieste,
+        'future': future,
+        'guadagno': guadagno,
+        'form_chiusura': form_chiusura,  # Passiamo il form al template
+        'chiusure_future': chiusure_future  # Passiamo la lista al template
+    })
+
+
+# --- NUOVE VISTE: AZIONI RAPIDE (Accetta/Rifiuta) ---
+@staff_member_required
+def gestisci_lezione(request, lezione_id, azione):
+    lezione = Lezione.objects.get(id=lezione_id)
+
+    if azione == 'accetta':
+        lezione.stato = 'CONFERMATA'
+        lezione.save()
+
+        # --- GENERAZIONE LINK GOOGLE CALENDAR ---
+        inizio = lezione.data_inizio
+        fine = inizio + timedelta(hours=float(lezione.durata_ore))
+        # Formato data per Google: YYYYMMDDThhmmssZ (UTC) o YYYYMMDDThhmmss (Local)
+        fmt = "%Y%m%dT%H%M%S"
+
+        params = {
+            'action': 'TEMPLATE',
+            'text': f"Ripetizioni con Francesco ({lezione.materia if hasattr(lezione, 'materia') else 'Lezione'})",
+            'dates': f"{inizio.strftime(fmt)}/{fine.strftime(fmt)}",
+            'details': f"Note: {lezione.note}",
+            'location': lezione.get_luogo_display(),
+        }
+        link_calendar = f"https://calendar.google.com/calendar/render?{urlencode(params)}"
+
+        # --- INVIO MAIL ---
+        if lezione.studente.email:
+            send_mail(
+                '✅ Lezione Confermata + Calendario',
+                f"""Ciao {lezione.studente.first_name}!
+La lezione è confermata.
+
+📅 Data: {lezione.data_inizio.strftime("%d/%m ore %H:%M")}
+📍 Luogo: {lezione.get_luogo_display()}
+
+👇 Clicca qui per aggiungerla al tuo calendario:
+{link_calendar}
+
+A presto!""",
+                settings.DEFAULT_FROM_EMAIL,
+                [lezione.studente.email],
+                fail_silently=True
+            )
+        messages.success(request, "Lezione confermata e mail inviata!")
+
+    elif azione == 'rifiuta':
+        lezione.stato = 'RIFIUTATA'
+        lezione.save()
+        # Invia mail rifiuto semplice...
+        if lezione.studente.email:
+            send_mail('❌ Lezione annullata', 'Ciao, purtroppo non riesco per quell\'orario.',
+                      settings.DEFAULT_FROM_EMAIL, [lezione.studente.email], fail_silently=True)
+        messages.warning(request, "Lezione rifiutata.")
+
+    elif azione == 'pagata':
+        lezione.pagata = True
+        lezione.save()
+        messages.success(request, "Pagamento registrato.")
+
+    return redirect('dashboard_docente')
+
+@staff_member_required
+def elimina_chiusura(request, chiusura_id):
+    chiusura = GiornoChiusura.objects.get(id=chiusura_id)
+    chiusura.delete()
+    messages.success(request, "Riapertura effettuata (chiusura cancellata).")
+    return redirect('dashboard_docente')

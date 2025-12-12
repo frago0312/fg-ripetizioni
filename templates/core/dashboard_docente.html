@@ -1,0 +1,178 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="text-primary"><i class="bi bi-speedometer2"></i> Dashboard Docente</h2>
+    <div class="text-end">
+        <h5 class="text-muted mb-0">Guadagno Mese (Pagato)</h5>
+        <h3 class="text-success fw-bold">€ {{ guadagno }}</h3>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-6 mb-4">
+        <div class="card shadow border-left-warning">
+            <div class="card-header bg-warning text-dark fw-bold">
+                <i class="bi bi-hourglass-split"></i> Richieste da Approvare ({{ richieste.count }})
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    {% for lezione in richieste %}
+                    <div class="list-group-item">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h5 class="mb-1">{{ lezione.studente.first_name }} {{ lezione.studente.last_name }}</h5>
+                            <small class="text-muted">{{ lezione.data_inizio|date:"d/m H:i" }}</small>
+                        </div>
+                        <p class="mb-1">
+                            {{ lezione.durata_ore }}h - {{ lezione.get_luogo_display }} <br>
+                            <i class="bi bi-chat-quote"></i> <em>{{ lezione.note|default:"--" }}</em>
+                        </p>
+                        
+                        <div class="mt-2 d-flex gap-2">
+                            <a href="{% url 'gestisci_lezione' lezione.id 'accetta' %}" class="btn btn-success btn-sm">
+                                <i class="bi bi-check-lg"></i> Accetta
+                            </a>
+                            <a href="{% url 'gestisci_lezione' lezione.id 'rifiuta' %}" class="btn btn-danger btn-sm">
+                                <i class="bi bi-x-lg"></i> Rifiuta
+                            </a>
+                            
+                            {% if lezione.studente.profilo.telefono %}
+                            <a href="https://wa.me/{{ lezione.studente.profilo.telefono|cut:' ' }}" target="_blank" class="btn btn-success btn-sm" style="background-color: #25D366; border:none;">
+                                <i class="bi bi-whatsapp"></i> Chat
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="p-3 text-center text-muted">Nessuna richiesta in attesa.</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card shadow border-left-primary">
+            <div class="card-header bg-primary text-white fw-bold">
+                <i class="bi bi-calendar-event"></i> Prossime Lezioni
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Chi</th>
+                            <th>Prezzo</th>
+                            <th>Azioni</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for lezione in future|slice:":10" %} <tr>
+                            <td class="fw-bold">{{ lezione.data_inizio|date:"d/m H:i" }}</td>
+                            <td>
+                                {{ lezione.studente.first_name }}
+                                {% if lezione.studente.profilo.telefono %}
+                                <a href="https://wa.me/{{ lezione.studente.profilo.telefono|cut:' ' }}" target="_blank" class="text-success ms-1">
+                                    <i class="bi bi-whatsapp"></i>
+                                </a>
+                                {% endif %}
+                            </td>
+                            <td>
+                                € {{ lezione.prezzo }}
+                                {% if lezione.pagata %}
+                                    <i class="bi bi-check-circle-fill text-success" title="Pagata"></i>
+                                {% else %}
+                                    <i class="bi bi-circle text-danger" title="Da Pagare"></i>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if not lezione.pagata %}
+                                <a href="{% url 'gestisci_lezione' lezione.id 'pagata' %}" class="btn btn-outline-success btn-sm py-0" title="Segna Pagata">
+                                    <i class="bi bi-cash"></i>
+                                </a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="4" class="text-center p-3">Nessuna lezione futura.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card shadow border-left-danger">
+            <div class="card-header bg-danger text-white fw-bold">
+                <i class="bi bi-calendar-x"></i> Gestione Chiusure / Ferie
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-5 border-end">
+                        <h6 class="text-muted mb-3">Aggiungi nuovo periodo</h6>
+                        <form method="post">
+                            {% csrf_token %}
+                            <input type="hidden" name="btn_chiusura" value="1">
+
+                            <div class="row mb-2">
+                                <div class="col-6">
+                                    <label class="small">Dal:</label>
+                                    {{ form_chiusura.data_inizio }}
+                                </div>
+                                <div class="col-6">
+                                    <label class="small">Al (Opzionale):</label>
+                                    {{ form_chiusura.data_fine }}
+                                </div>
+                            </div>
+                            <div class="mb-2">
+                                <label class="small">Motivo:</label>
+                                {{ form_chiusura.motivo }}
+                            </div>
+                            <button type="submit" class="btn btn-danger btn-sm w-100">Blocca Date</button>
+                        </form>
+                    </div>
+
+                    <div class="col-md-7 ps-md-4">
+                        <h6 class="text-muted mb-3">Chiusure Programmate</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Periodo</th>
+                                        <th>Motivo</th>
+                                        <th>Azione</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for c in chiusure_future %}
+                                    <tr>
+                                        <td>
+                                            {% if c.data_inizio == c.data_fine %}
+                                                {{ c.data_inizio|date:"d M Y" }}
+                                            {% else %}
+                                                {{ c.data_inizio|date:"d M" }} - {{ c.data_fine|date:"d M Y" }}
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ c.motivo }}</td>
+                                        <td>
+                                            <a href="{% url 'elimina_chiusura' c.id %}" class="btn btn-outline-secondary btn-sm py-0" onclick="return confirm('Sicuro di voler riaprire queste date?');">
+                                                <i class="bi bi-trash"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr><td colspan="3" class="text-center text-muted small">Nessuna chiusura programmata.</td></tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

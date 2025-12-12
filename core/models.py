@@ -5,6 +5,26 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 
 
+class GiornoChiusura(models.Model):
+    data_inizio = models.DateField(help_text="Primo giorno di chiusura")
+    data_fine = models.DateField(help_text="Ultimo giorno di chiusura", blank=True, null=True)
+    motivo = models.CharField(max_length=100, blank=True, help_text="Es. Vacanze Estive")
+
+    def save(self, *args, **kwargs):
+        # Se l'utente non mette la data fine, consideriamo che sia un giorno solo
+        if not self.data_fine:
+            self.data_fine = self.data_inizio
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        if self.data_inizio == self.data_fine:
+            return f"{self.data_inizio.strftime('%d/%m')} - {self.motivo}"
+        return f"{self.data_inizio.strftime('%d/%m')} al {self.data_fine.strftime('%d/%m')} - {self.motivo}"
+
+    class Meta:
+        verbose_name_plural = "Giorni di Chiusura"
+        ordering = ['-data_inizio']
+
 class Lezione(models.Model):
     LUOGO_SCELTE = [
         ('BASE', '🏠 Online / Casa Mia (Tariffa Base)'),
@@ -85,6 +105,9 @@ class Profilo(models.Model):
 
     def __str__(self):
         return f"Profilo di {self.user.username}"
+
+    class Meta:
+        verbose_name_plural = "Profili"
 
 # --- SEGNALI AUTOMATICI ---
 # Quando crei un User, Django crea automaticamente anche il suo Profilo vuoto
