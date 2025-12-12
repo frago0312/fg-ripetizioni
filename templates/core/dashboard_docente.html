@@ -105,6 +105,76 @@
 
 <div class="row mt-4">
     <div class="col-12">
+        <div class="card shadow border-left-info">
+            <div class="card-header bg-info text-white fw-bold">
+                <i class="bi bi-clock"></i> Orari Settimanali (Disponibilità)
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-5 border-end">
+                        <h6 class="text-muted mb-3">Imposta Orario Giorno</h6>
+                        <form method="post">
+                            {% csrf_token %}
+                            <input type="hidden" name="btn_disponibilita" value="1">
+
+                            <div class="mb-2">
+                                <label class="small">Giorno:</label>
+                                {{ form_disp.giorno }}
+                            </div>
+                            <div class="row mb-2">
+                                <div class="col-6">
+                                    <label class="small">Dalle:</label>
+                                    {{ form_disp.ora_inizio }}
+                                </div>
+                                <div class="col-6">
+                                    <label class="small">Alle:</label>
+                                    {{ form_disp.ora_fine }}
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-info text-white btn-sm w-100">Salva Orario</button>
+                            <small class="text-muted d-block mt-1 text-center" style="font-size: 0.75rem;">
+                                *Se il giorno esiste già, verrà aggiornato.
+                            </small>
+                        </form>
+                    </div>
+
+                    <div class="col-md-7 ps-md-4">
+                        <h6 class="text-muted mb-3">La tua settimana tipo</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Giorno</th>
+                                        <th>Orario</th>
+                                        <th>Azione</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for d in disponibilita_list %}
+                                    <tr>
+                                        <td class="fw-bold text-primary">{{ d.get_giorno_display }}</td>
+                                        <td>{{ d.ora_inizio|date:"H:i" }} - {{ d.ora_fine|date:"H:i" }}</td>
+                                        <td>
+                                            <a href="{% url 'elimina_disponibilita' d.id %}" class="btn btn-outline-danger btn-sm py-0" onclick="return confirm('Rimuovere disponibilità per {{ d.get_giorno_display }}?');">
+                                                <i class="bi bi-trash"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr><td colspan="3" class="text-center text-muted small py-3">Nessun orario inserito. Non appari disponibile!</td></tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
         <div class="card shadow border-left-danger">
             <div class="card-header bg-danger text-white fw-bold">
                 <i class="bi bi-calendar-x"></i> Gestione Chiusure / Ferie

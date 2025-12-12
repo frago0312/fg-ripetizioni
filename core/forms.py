@@ -137,3 +137,13 @@ class ChiusuraForm(forms.ModelForm):
         # Se c'è una data fine, controlliamo che non sia antecedente all'inizio
         if fine and fine < inizio:
             self.add_error('data_fine', "La data fine non può essere prima dell'inizio!")
+
+class DisponibilitaForm(forms.ModelForm):
+    class Meta:
+        model = Disponibilita
+        fields = ['giorno', 'ora_inizio', 'ora_fine']
+        widgets = {
+            'giorno': forms.Select(attrs={'class': 'form-select'}),
+            'ora_inizio': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
+            'ora_fine': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
+        }

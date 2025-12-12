@@ -11,7 +11,7 @@ from django.utils.http import urlencode
 from django.contrib.admin.views.decorators import staff_member_required
 
 # IMPORTA IL NUOVO FORM DI REGISTRAZIONE
-from .forms import PrenotazioneForm, RegistrazioneForm, ProfiloForm, ChiusuraForm
+from .forms import PrenotazioneForm, RegistrazioneForm, ProfiloForm, ChiusuraForm, DisponibilitaForm
 from .models import Lezione, Disponibilita, Profilo, GiornoChiusura
 
 
@@ -173,7 +173,7 @@ def profilo_view(request):
 # --- NUOVA VISTA: DASHBOARD DOCENTE ---
 @staff_member_required
 def dashboard_docente(request):
-    # Gestione salvataggio Form Chiusura
+    # --- 1. GESTIONE CHIUSURE (FERIE) ---
     if request.method == 'POST' and 'btn_chiusura' in request.POST:
         form_chiusura = ChiusuraForm(request.POST)
         if form_chiusura.is_valid():
@@ -183,9 +183,26 @@ def dashboard_docente(request):
     else:
         form_chiusura = ChiusuraForm()
 
-    oggi = timezone.now()
+    # --- 2. GESTIONE DISPONIBILITÀ (ORARI SETTIMANALI) ---
+    if request.method == 'POST' and 'btn_disponibilita' in request.POST:
+        form_disp = DisponibilitaForm(request.POST)
+        if form_disp.is_valid():
+            giorno = form_disp.cleaned_data['giorno']
+            inizio = form_disp.cleaned_data['ora_inizio']
+            fine = form_disp.cleaned_data['ora_fine']
 
-    # Dati standard della dashboard
+            # Usa update_or_create: se il Lunedì esiste già, lo aggiorna. Se no, lo crea.
+            Disponibilita.objects.update_or_create(
+                giorno=giorno,
+                defaults={'ora_inizio': inizio, 'ora_fine': fine}
+            )
+            messages.success(request, "Orario settimanale aggiornato!")
+            return redirect('dashboard_docente')
+    else:
+        form_disp = DisponibilitaForm()
+
+    # --- DATI STANDARD ---
+    oggi = timezone.now()
     richieste = Lezione.objects.filter(stato='RICHIESTA').order_by('data_inizio')
     future = Lezione.objects.filter(stato='CONFERMATA', data_inizio__gte=oggi).order_by('data_inizio')
 
@@ -194,16 +211,28 @@ def dashboard_docente(request):
     Lezione.objects.filter(stato='CONFERMATA', data_inizio__gte=inizio_mese, pagata=True).aggregate(Sum('prezzo'))[
         'prezzo__sum'] or 0
 
-    # Lista delle chiusure future (per poterle cancellare)
+    # Liste per visualizzazione
     chiusure_future = GiornoChiusura.objects.filter(data_fine__gte=oggi.date()).order_by('data_inizio')
+    disponibilita_list = Disponibilita.objects.all().order_by('giorno')  # <-- Lista orari
 
     return render(request, 'core/dashboard_docente.html', {
         'richieste': richieste,
         'future': future,
         'guadagno': guadagno,
-        'form_chiusura': form_chiusura,  # Passiamo il form al template
-        'chiusure_future': chiusure_future  # Passiamo la lista al template
+        'form_chiusura': form_chiusura,
+        'chiusure_future': chiusure_future,
+        'form_disp': form_disp,  # <-- Passiamo il form
+        'disponibilita_list': disponibilita_list  # <-- Passiamo la lista
     })
+
+
+# --- NUOVA VISTA: ELIMINA DISPONIBILITÀ ---
+@staff_member_required
+def elimina_disponibilita(request, disp_id):
+    disp = Disponibilita.objects.get(id=disp_id)
+    disp.delete()
+    messages.success(request, "Orario rimosso dalla settimana.")
+    return redirect('dashboard_docente')
 
 
 # --- NUOVE VISTE: AZIONI RAPIDE (Accetta/Rifiuta) ---
