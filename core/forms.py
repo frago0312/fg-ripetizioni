@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
-from .models import Lezione, Disponibilita
+from .models import Lezione, Disponibilita, Profilo
 import datetime
 from django.utils import timezone
 from datetime import timedelta
@@ -106,3 +106,14 @@ class PrenotazioneForm(forms.ModelForm):
         if commit:
             lezione.save()
         return lezione
+
+
+class ProfiloForm(forms.ModelForm):
+    class Meta:
+        model = Profilo
+        fields = ['telefono', 'indirizzo', 'scuola']
+        widgets = {
+            'telefono': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '+39 ...'}),
+            'indirizzo': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Via Roma 1, Firenze'}),
+            'scuola': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Scuola e Classe'}),
+        }

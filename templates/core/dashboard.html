@@ -2,10 +2,8 @@
 
 {% block content %}
 <div class="row g-4">
-    <!-- Colonna Sinistra: Riepilogo Soldi e Azioni -->
     <div class="col-lg-4">
 
-        <!-- Card "Da Pagare" -->
         <div class="card mb-4 text-center border-left-danger">
             <div class="card-body py-5">
                 <h6 class="text-uppercase text-muted mb-2">Totale da Saldare</h6>
@@ -19,13 +17,18 @@
             </div>
         </div>
 
-        <!-- Bottone Prenota -->
-        <a href="{% url 'prenota' %}" class="btn btn-primary w-100 py-3 mb-3 shadow">
-            <i class="bi bi-calendar-plus me-2"></i> PRENOTA NUOVA LEZIONE
-        </a>
+        <div class="d-grid gap-2">
+            <a href="{% url 'prenota' %}" class="btn btn-primary py-3 shadow">
+                <i class="bi bi-calendar-plus me-2"></i> PRENOTA NUOVA LEZIONE
+            </a>
+
+            <a href="{% url 'profilo' %}" class="btn btn-outline-primary py-2 shadow-sm">
+                <i class="bi bi-person-lines-fill me-2"></i> I MIEI DATI
+            </a>
+        </div>
+
     </div>
 
-    <!-- Colonna Destra: Storico -->
     <div class="col-lg-8">
         <div class="card">
             <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">

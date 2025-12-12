@@ -1,21 +1,28 @@
 from django.contrib import admin
 from django.core.mail import send_mail
 from django.conf import settings
-from .models import Lezione, Disponibilita
+from .models import Lezione, Disponibilita, Profilo
 
-# 1. Registrazione semplice per Disponibilita
-# (Non usiamo LezioneAdmin qui, altrimenti cerca campi che non esistono!)
+# 1. Gestione Disponibilità (Orari)
 @admin.register(Disponibilita)
 class DisponibilitaAdmin(admin.ModelAdmin):
     list_display = ('get_giorno_display', 'ora_inizio', 'ora_fine')
     ordering = ('giorno', 'ora_inizio')
 
-# 2. Registrazione avanzata per Lezione
+# 2. Gestione Profilo Studente (NUOVO)
+# Ti permette di vedere telefono e scuola direttamente dall'Admin
+@admin.register(Profilo)
+class ProfiloAdmin(admin.ModelAdmin):
+    list_display = ('user', 'telefono', 'scuola')
+    search_fields = ('user__username', 'user__first_name', 'user__last_name', 'telefono')
+
+# 3. Gestione Lezioni (con invio Mail)
 @admin.register(Lezione)
 class LezioneAdmin(admin.ModelAdmin):
     list_display = ('studente', 'data_inizio', 'luogo', 'prezzo', 'stato', 'pagata')
     list_filter = ('stato', 'pagata', 'data_inizio')
     list_editable = ('stato', 'pagata')
+    search_fields = ('studente__username', 'studente__first_name', 'studente__last_name')
 
     def save_model(self, request, obj, form, change):
         if change:

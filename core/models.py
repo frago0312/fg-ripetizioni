@@ -1,6 +1,8 @@
 from django.db import models
 from django.contrib.auth.models import User
 from decimal import Decimal
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 
 
 class Lezione(models.Model):
@@ -72,3 +74,29 @@ class Disponibilita(models.Model):
     class Meta:
         verbose_name_plural = "Disponibilità"
         ordering = ['giorno']
+
+
+# --- NUOVO MODELLO PROFILO ---
+class Profilo(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profilo')
+    telefono = models.CharField(max_length=20, blank=True, null=True, help_text="Utile per urgenze (WhatsApp)")
+    indirizzo = models.CharField(max_length=255, blank=True, null=True, help_text="Indirizzo completo (se vengo io da te)")
+    scuola = models.CharField(max_length=100, blank=True, null=True, help_text="Es. Liceo Scientifico, 4° Anno")
+
+    def __str__(self):
+        return f"Profilo di {self.user.username}"
+
+# --- SEGNALI AUTOMATICI ---
+# Quando crei un User, Django crea automaticamente anche il suo Profilo vuoto
+@receiver(post_save, sender=User)
+def create_user_profile(sender, instance, created, **kwargs):
+    if created:
+        Profilo.objects.create(user=instance)
+
+@receiver(post_save, sender=User)
+def save_user_profile(sender, instance, **kwargs):
+    # Se per caso il profilo non esiste (vecchi utenti), lo crea al salvataggio
+    try:
+        instance.profilo.save()
+    except Profilo.DoesNotExist:
+        Profilo.objects.create(user=instance)

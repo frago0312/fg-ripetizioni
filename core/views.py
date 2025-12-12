@@ -9,8 +9,8 @@ from datetime import datetime, timedelta, time
 from django.utils import timezone
 
 # IMPORTA IL NUOVO FORM DI REGISTRAZIONE
-from .forms import PrenotazioneForm, RegistrazioneForm
-from .models import Lezione, Disponibilita
+from .forms import PrenotazioneForm, RegistrazioneForm, ProfiloForm
+from .models import Lezione, Disponibilita, Profilo
 
 
 @login_required
@@ -138,3 +138,23 @@ def get_orari_disponibili(request):
         return HttpResponse("<option value=''>Tutto occupato!</option>")
 
     return HttpResponse("".join(orari_liberi))
+
+
+@login_required
+def profilo_view(request):
+    # Gestiamo il caso in cui un vecchio utente non abbia ancora il profilo
+    try:
+        profilo = request.user.profilo
+    except Profilo.DoesNotExist:
+        profilo = Profilo.objects.create(user=request.user)
+
+    if request.method == 'POST':
+        form = ProfiloForm(request.POST, instance=profilo)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Dati aggiornati con successo!')
+            return redirect('dashboard')
+    else:
+        form = ProfiloForm(instance=profilo)
+
+    return render(request, 'core/profilo.html', {'form': form})
