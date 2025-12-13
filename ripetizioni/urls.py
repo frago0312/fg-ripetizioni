@@ -33,4 +33,5 @@ urlpatterns = [
     path('gestisci-lezione/<int:lezione_id>/<str:azione>/', views.gestisci_lezione, name='gestisci_lezione'),
     path('elimina-chiusura/<int:chiusura_id>/', views.elimina_chiusura, name='elimina_chiusura'),
     path('elimina-disponibilita/<int:disp_id>/', views.elimina_disponibilita, name='elimina_disponibilita'),
+    path('export-csv/', views.export_lezioni_csv, name='export_lezioni_csv'),
 ]

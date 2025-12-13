@@ -4,6 +4,14 @@ from decimal import Decimal
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
+class Impostazioni(models.Model):
+    tariffa_base = models.DecimalField(max_digits=5, decimal_places=2, default=10.00, help_text="Prezzo all'ora base")
+
+    def __str__(self):
+        return f"Configurazione (Tariffa: {self.tariffa_base}€)"
+
+    class Meta:
+        verbose_name_plural = "Impostazioni"
 
 class GiornoChiusura(models.Model):
     data_inizio = models.DateField(help_text="Primo giorno di chiusura")
@@ -53,7 +61,10 @@ class Lezione(models.Model):
     note = models.TextField(blank=True, null=True)
 
     def save(self, *args, **kwargs):
-        TARIFFA_BASE = 10.00
+        # RECUPERO TARIFFA DINAMICA
+        # Prendo la prima configurazione o uso 10.00 come default se non esiste
+        config = Impostazioni.objects.first()
+        tariffa_base_db = config.tariffa_base if config else Decimal(10.00)
 
         extra = 0
         if self.luogo == 'RUFINA':
@@ -65,8 +76,9 @@ class Lezione(models.Model):
         elif self.luogo == 'ALTRO':
             extra = 0
 
-        # Converto in Decimal per fare calcoli precisi con le mezze ore
-        costo_ore = Decimal(TARIFFA_BASE) * Decimal(self.durata_ore)
+        # Ricalcola il prezzo solo se non è stato forzato manualmente (o ricalcola sempre se preferisci)
+        # Qui usiamo la logica: se ricalcolo, uso la tariffa dal DB
+        costo_ore = tariffa_base_db * Decimal(self.durata_ore)
         self.prezzo = costo_ore + Decimal(extra)
 
         super().save(*args, **kwargs)

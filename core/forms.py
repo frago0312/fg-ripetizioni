@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
-from .models import Lezione, Disponibilita, Profilo, GiornoChiusura
+from .models import Lezione, Disponibilita, Profilo, GiornoChiusura, Impostazioni
 import datetime
 from django.utils import timezone
 from datetime import timedelta
@@ -146,4 +146,12 @@ class DisponibilitaForm(forms.ModelForm):
             'giorno': forms.Select(attrs={'class': 'form-select'}),
             'ora_inizio': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
             'ora_fine': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
+        }
+
+class ImpostazioniForm(forms.ModelForm):
+    class Meta:
+        model = Impostazioni
+        fields = ['tariffa_base']
+        widgets = {
+            'tariffa_base': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.50'}),
         }

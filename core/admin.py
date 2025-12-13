@@ -1,7 +1,11 @@
 from django.contrib import admin
 from django.core.mail import send_mail
 from django.conf import settings
-from .models import Lezione, Disponibilita, Profilo, GiornoChiusura
+from .models import Lezione, Disponibilita, Profilo, GiornoChiusura, Impostazioni
+
+@admin.register(Impostazioni)
+class ImpostazioniAdmin(admin.ModelAdmin):
+    list_display = ('tariffa_base',)
 
 # 1. Gestione Disponibilità (Orari)
 @admin.register(Disponibilita)

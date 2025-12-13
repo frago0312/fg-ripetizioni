@@ -9,10 +9,15 @@ from datetime import datetime, timedelta, time
 from django.utils import timezone
 from django.utils.http import urlencode
 from django.contrib.admin.views.decorators import staff_member_required
+import csv
 
-# IMPORTA IL NUOVO FORM DI REGISTRAZIONE
-from .forms import PrenotazioneForm, RegistrazioneForm, ProfiloForm, ChiusuraForm, DisponibilitaForm
-from .models import Lezione, Disponibilita, Profilo, GiornoChiusura
+# IMPORTA TUTTI I FORM (Compresi quelli nuovi per Tariffa e Disponibilità)
+from .forms import (
+    PrenotazioneForm, RegistrazioneForm, ProfiloForm,
+    ChiusuraForm, DisponibilitaForm, ImpostazioniForm
+)
+# IMPORTA TUTTI I MODELLI
+from .models import Lezione, Disponibilita, Profilo, GiornoChiusura, Impostazioni
 
 
 @login_required
@@ -64,7 +69,6 @@ def prenota(request):
 
 def registrazione(request):
     if request.method == 'POST':
-        # USIAMO IL NOSTRO FORM NUOVO
         form = RegistrazioneForm(request.POST)
         if form.is_valid():
             form.save()
@@ -86,6 +90,7 @@ def get_orari_disponibili(request):
     except ValueError:
         return HttpResponse("<option value=''>Data non valida</option>")
 
+    # CONTROLLO CHIUSURE/FERIE
     chiusura = GiornoChiusura.objects.filter(
         data_inizio__lte=data_scelta,
         data_fine__gte=data_scelta
@@ -112,7 +117,6 @@ def get_orari_disponibili(request):
         ora_corrente += timedelta(minutes=30)
 
     # 3. Filtriamo quelli occupati
-    # Troviamo le lezioni confermate o in richiesta per quel giorno
     lezioni_giorno = Lezione.objects.filter(
         data_inizio__date=data_scelta,
         stato__in=['RICHIESTA', 'CONFERMATA']
@@ -121,26 +125,18 @@ def get_orari_disponibili(request):
     orari_liberi = []
     for orario in orari_possibili:
         occupato = False
-        # Rendiamo l'orario timezone-aware per il confronto
         inizio_slot = timezone.make_aware(orario)
-        fine_slot = inizio_slot + timedelta(hours=1.0)  # Supponiamo durata minima 1h per il check, ma affiniamo sotto
-
+        # Check semplice: occupato se c'è sovrapposizione
         for lezione in lezioni_giorno:
-            # Calcoliamo inizio e fine della lezione esistente
             lezione_inizio = lezione.data_inizio
-            # Se la lezione non ha durata, assumiamo 1h per sicurezza
             durata = float(lezione.durata_ore) if lezione.durata_ore else 1.0
             lezione_fine = lezione_inizio + timedelta(hours=durata)
 
-            # Controllo sovrapposizione:
-            # Uno slot è occupato se inizia PRIMA che l'altra finisca E finisce DOPO che l'altra inizi
-            # Qui controlliamo solo l'inizio dello slot per semplicità
             if lezione_inizio <= inizio_slot < lezione_fine:
                 occupato = True
                 break
 
         if not occupato:
-            # Formattiamo l'orario per l'HTML (HH:MM)
             str_orario = orario.strftime("%H:%M")
             orari_liberi.append(f"<option value='{str_orario}'>{str_orario}</option>")
 
@@ -152,7 +148,6 @@ def get_orari_disponibili(request):
 
 @login_required
 def profilo_view(request):
-    # Gestiamo il caso in cui un vecchio utente non abbia ancora il profilo
     try:
         profilo = request.user.profilo
     except Profilo.DoesNotExist:
@@ -170,10 +165,23 @@ def profilo_view(request):
     return render(request, 'core/profilo.html', {'form': form})
 
 
-# --- NUOVA VISTA: DASHBOARD DOCENTE ---
+# --- DASHBOARD DOCENTE (COMPLETA CON TUTTE LE GESTIONI) ---
 @staff_member_required
 def dashboard_docente(request):
-    # --- 1. GESTIONE CHIUSURE (FERIE) ---
+    # Recuperiamo l'oggetto impostazioni esistente (o None)
+    config_obj = Impostazioni.objects.first()
+
+    # --- 1. GESTIONE CAMBIO TARIFFA ---
+    if request.method == 'POST' and 'btn_tariffa' in request.POST:
+        form_tariffa = ImpostazioniForm(request.POST, instance=config_obj)
+        if form_tariffa.is_valid():
+            form_tariffa.save()
+            messages.success(request, "Tariffa oraria aggiornata!")
+            return redirect('dashboard_docente')
+    else:
+        form_tariffa = ImpostazioniForm(instance=config_obj)
+
+    # --- 2. GESTIONE CHIUSURE (FERIE) ---
     if request.method == 'POST' and 'btn_chiusura' in request.POST:
         form_chiusura = ChiusuraForm(request.POST)
         if form_chiusura.is_valid():
@@ -183,7 +191,7 @@ def dashboard_docente(request):
     else:
         form_chiusura = ChiusuraForm()
 
-    # --- 2. GESTIONE DISPONIBILITÀ (ORARI SETTIMANALI) ---
+    # --- 3. GESTIONE DISPONIBILITÀ (ORARI SETTIMANALI) ---
     if request.method == 'POST' and 'btn_disponibilita' in request.POST:
         form_disp = DisponibilitaForm(request.POST)
         if form_disp.is_valid():
@@ -191,7 +199,6 @@ def dashboard_docente(request):
             inizio = form_disp.cleaned_data['ora_inizio']
             fine = form_disp.cleaned_data['ora_fine']
 
-            # Usa update_or_create: se il Lunedì esiste già, lo aggiorna. Se no, lo crea.
             Disponibilita.objects.update_or_create(
                 giorno=giorno,
                 defaults={'ora_inizio': inizio, 'ora_fine': fine}
@@ -201,19 +208,20 @@ def dashboard_docente(request):
     else:
         form_disp = DisponibilitaForm()
 
-    # --- DATI STANDARD ---
+    # --- DATI STANDARD DASHBOARD ---
     oggi = timezone.now()
     richieste = Lezione.objects.filter(stato='RICHIESTA').order_by('data_inizio')
     future = Lezione.objects.filter(stato='CONFERMATA', data_inizio__gte=oggi).order_by('data_inizio')
 
     inizio_mese = today = timezone.now().date().replace(day=1)
-    guadagno = \
-    Lezione.objects.filter(stato='CONFERMATA', data_inizio__gte=inizio_mese, pagata=True).aggregate(Sum('prezzo'))[
-        'prezzo__sum'] or 0
+    guadagno = Lezione.objects.filter(
+        stato='CONFERMATA',
+        data_inizio__gte=inizio_mese,
+        pagata=True
+    ).aggregate(Sum('prezzo'))['prezzo__sum'] or 0
 
-    # Liste per visualizzazione
     chiusure_future = GiornoChiusura.objects.filter(data_fine__gte=oggi.date()).order_by('data_inizio')
-    disponibilita_list = Disponibilita.objects.all().order_by('giorno')  # <-- Lista orari
+    disponibilita_list = Disponibilita.objects.all().order_by('giorno')
 
     return render(request, 'core/dashboard_docente.html', {
         'richieste': richieste,
@@ -221,12 +229,12 @@ def dashboard_docente(request):
         'guadagno': guadagno,
         'form_chiusura': form_chiusura,
         'chiusure_future': chiusure_future,
-        'form_disp': form_disp,  # <-- Passiamo il form
-        'disponibilita_list': disponibilita_list  # <-- Passiamo la lista
+        'form_disp': form_disp,
+        'disponibilita_list': disponibilita_list,
+        'form_tariffa': form_tariffa,  # <-- Passato al template
     })
 
 
-# --- NUOVA VISTA: ELIMINA DISPONIBILITÀ ---
 @staff_member_required
 def elimina_disponibilita(request, disp_id):
     disp = Disponibilita.objects.get(id=disp_id)
@@ -235,7 +243,14 @@ def elimina_disponibilita(request, disp_id):
     return redirect('dashboard_docente')
 
 
-# --- NUOVE VISTE: AZIONI RAPIDE (Accetta/Rifiuta) ---
+@staff_member_required
+def elimina_chiusura(request, chiusura_id):
+    chiusura = GiornoChiusura.objects.get(id=chiusura_id)
+    chiusura.delete()
+    messages.success(request, "Riapertura effettuata (chiusura cancellata).")
+    return redirect('dashboard_docente')
+
+
 @staff_member_required
 def gestisci_lezione(request, lezione_id, azione):
     lezione = Lezione.objects.get(id=lezione_id)
@@ -244,10 +259,9 @@ def gestisci_lezione(request, lezione_id, azione):
         lezione.stato = 'CONFERMATA'
         lezione.save()
 
-        # --- GENERAZIONE LINK GOOGLE CALENDAR ---
+        # --- CALENDARIO + MAIL ---
         inizio = lezione.data_inizio
         fine = inizio + timedelta(hours=float(lezione.durata_ore))
-        # Formato data per Google: YYYYMMDDThhmmssZ (UTC) o YYYYMMDDThhmmss (Local)
         fmt = "%Y%m%dT%H%M%S"
 
         params = {
@@ -259,7 +273,6 @@ def gestisci_lezione(request, lezione_id, azione):
         }
         link_calendar = f"https://calendar.google.com/calendar/render?{urlencode(params)}"
 
-        # --- INVIO MAIL ---
         if lezione.studente.email:
             send_mail(
                 '✅ Lezione Confermata + Calendario',
@@ -282,7 +295,6 @@ A presto!""",
     elif azione == 'rifiuta':
         lezione.stato = 'RIFIUTATA'
         lezione.save()
-        # Invia mail rifiuto semplice...
         if lezione.studente.email:
             send_mail('❌ Lezione annullata', 'Ciao, purtroppo non riesco per quell\'orario.',
                       settings.DEFAULT_FROM_EMAIL, [lezione.studente.email], fail_silently=True)
@@ -295,9 +307,40 @@ A presto!""",
 
     return redirect('dashboard_docente')
 
+
 @staff_member_required
-def elimina_chiusura(request, chiusura_id):
-    chiusura = GiornoChiusura.objects.get(id=chiusura_id)
-    chiusura.delete()
-    messages.success(request, "Riapertura effettuata (chiusura cancellata).")
-    return redirect('dashboard_docente')
+def export_lezioni_csv(request):
+    data_dal = request.GET.get('dal')
+    data_al = request.GET.get('al')
+
+    response = HttpResponse(content_type='text/csv')
+    filename = "lezioni_export"
+    if data_dal: filename += f"_dal_{data_dal}"
+    if data_al: filename += f"_al_{data_al}"
+    response['Content-Disposition'] = f'attachment; filename="{filename}.csv"'
+
+    writer = csv.writer(response)
+    writer.writerow(['Data', 'Ora', 'Studente', 'Durata', 'Prezzo', 'Stato', 'Pagata', 'Note'])
+
+    lezioni = Lezione.objects.filter(stato='CONFERMATA')
+
+    if data_dal:
+        lezioni = lezioni.filter(data_inizio__date__gte=data_dal)
+    if data_al:
+        lezioni = lezioni.filter(data_inizio__date__lte=data_al)
+
+    lezioni = lezioni.order_by('-data_inizio')
+
+    for lezione in lezioni:
+        writer.writerow([
+            lezione.data_inizio.strftime("%d/%m/%Y"),
+            lezione.data_inizio.strftime("%H:%M"),
+            f"{lezione.studente.first_name} {lezione.studente.last_name}",
+            str(lezione.durata_ore).replace('.', ','),
+            f"{lezione.prezzo}".replace('.', ','),
+            lezione.get_stato_display(),
+            "SI" if lezione.pagata else "NO",
+            lezione.note or ""
+        ])
+
+    return response
