@@ -1,0 +1,21 @@
+{% extends 'emails/base_email.html' %}
+
+{% block content %}
+    <h3>👋 Ciao Prof!</h3>
+    <p>Hai ricevuto una nuova richiesta di lezione.</p>
+
+    <div class="info-box">
+        <strong>Studente:</strong> {{ lezione.studente.first_name }} {{ lezione.studente.last_name }}<br>
+        <strong>Data:</strong> {{ lezione.data_inizio|date:"d F Y" }}<br>
+        <strong>Ora:</strong> {{ lezione.data_inizio|date:"H:i" }}<br>
+        <strong>Durata:</strong> {{ lezione.durata_ore }} ore<br>
+        <strong>Luogo:</strong> {{ lezione.get_luogo_display }}
+        {% if lezione.note %}
+        <br><strong>Note:</strong> {{ lezione.note }}
+        {% endif %}
+    </div>
+
+    <p style="text-align: center;">
+        <a href="https://francescogori03.eu.pythonanywhere.com/dashboard-docente/" class="btn">Vai alla Dashboard</a>
+    </p>
+{% endblock %}

@@ -18,6 +18,7 @@ from .forms import (
 )
 # IMPORTA TUTTI I MODELLI
 from .models import Lezione, Disponibilita, Profilo, GiornoChiusura, Impostazioni
+from .utils import invia_email_custom
 
 
 @login_required
@@ -40,24 +41,13 @@ def prenota(request):
             lezione.studente = request.user
             lezione.save()
 
-            # --- MAIL AL PROF (TE) ---
-            try:
-                soggetto = f"Nuova Lezione: {request.user.username}"
-                messaggio = f"""
-                Ciao Francesco!
-                Nuova richiesta da: {request.user.first_name} {request.user.last_name} ({request.user.username})
-
-                Data: {lezione.data_inizio.strftime('%d/%m/%Y %H:%M')}
-                Durata: {lezione.durata_ore}h
-                Zona: {lezione.get_luogo_display()}
-                Note: {lezione.note}
-
-                Accetta qui: https://francescogori03.eu.pythonanywhere.com/admin/
-                """
-                send_mail(soggetto, messaggio, settings.DEFAULT_FROM_EMAIL, [settings.EMAIL_HOST_USER],
-                          fail_silently=True)
-            except:
-                pass  # Non blocchiamo se la mail fallisce
+            # --- NUOVA GESTIONE MAIL AL PROF ---
+            invia_email_custom(
+                soggetto=f"Nuova Lezione: {request.user.username}",
+                destinatari=[settings.EMAIL_HOST_USER],
+                template_name='nuova_richiesta.html',
+                context={'lezione': lezione}
+            )
 
             messages.success(request, 'Richiesta inviata! Riceverai una mail di conferma.')
             return redirect('dashboard')
@@ -259,45 +249,44 @@ def gestisci_lezione(request, lezione_id, azione):
         lezione.stato = 'CONFERMATA'
         lezione.save()
 
-        # --- CALENDARIO + MAIL ---
+        # --- CALENDARIO ---
         inizio = lezione.data_inizio
         fine = inizio + timedelta(hours=float(lezione.durata_ore))
         fmt = "%Y%m%dT%H%M%S"
-
         params = {
             'action': 'TEMPLATE',
-            'text': f"Ripetizioni con Francesco ({lezione.materia if hasattr(lezione, 'materia') else 'Lezione'})",
+            'text': f"Ripetizioni FG ({lezione.studente.first_name})",
             'dates': f"{inizio.strftime(fmt)}/{fine.strftime(fmt)}",
             'details': f"Note: {lezione.note}",
             'location': lezione.get_luogo_display(),
         }
         link_calendar = f"https://calendar.google.com/calendar/render?{urlencode(params)}"
 
+        # --- NUOVA GESTIONE MAIL CONFERMA ---
         if lezione.studente.email:
-            send_mail(
-                '✅ Lezione Confermata + Calendario',
-                f"""Ciao {lezione.studente.first_name}!
-La lezione è confermata.
-
-📅 Data: {lezione.data_inizio.strftime("%d/%m ore %H:%M")}
-📍 Luogo: {lezione.get_luogo_display()}
-
-👇 Clicca qui per aggiungerla al tuo calendario:
-{link_calendar}
-
-A presto!""",
-                settings.DEFAULT_FROM_EMAIL,
-                [lezione.studente.email],
-                fail_silently=True
+            invia_email_custom(
+                soggetto='✅ Lezione Confermata',
+                destinatari=[lezione.studente.email],
+                template_name='conferma_lezione.html',
+                context={
+                    'lezione': lezione,
+                    'link_calendar': link_calendar
+                }
             )
         messages.success(request, "Lezione confermata e mail inviata!")
 
     elif azione == 'rifiuta':
         lezione.stato = 'RIFIUTATA'
         lezione.save()
+
+        # --- NUOVA GESTIONE MAIL RIFIUTO ---
         if lezione.studente.email:
-            send_mail('❌ Lezione annullata', 'Ciao, purtroppo non riesco per quell\'orario.',
-                      settings.DEFAULT_FROM_EMAIL, [lezione.studente.email], fail_silently=True)
+            invia_email_custom(
+                soggetto='❌ Aggiornamento Lezione',
+                destinatari=[lezione.studente.email],
+                template_name='rifiuto_lezione.html',
+                context={'lezione': lezione}
+            )
         messages.warning(request, "Lezione rifiutata.")
 
     elif azione == 'pagata':
@@ -306,7 +295,6 @@ A presto!""",
         messages.success(request, "Pagamento registrato.")
 
     return redirect('dashboard_docente')
-
 
 @staff_member_required
 def export_lezioni_csv(request):

@@ -1,0 +1,18 @@
+{% extends 'emails/base_email.html' %}
+
+{% block content %}
+    <h3>⚠️ Richiesta non accettata</h3>
+    <p>Ciao <strong>{{ lezione.studente.first_name }}</strong>,</p>
+    
+    <p>Purtroppo non riesco a confermare la lezione per il giorno:</p>
+    
+    <div class="info-box" style="border-left-color: #e74a3b; background-color: #fff5f5;">
+        {{ lezione.data_inizio|date:"l d F" }} ore {{ lezione.data_inizio|date:"H:i" }}
+    </div>
+
+    <p>Probabilmente ho già un impegno in quell'orario. Prova a vedere se c'è un altro orario disponibile o scrivimi!</p>
+
+    <p style="text-align: center;">
+        <a href="https://francescogori03.eu.pythonanywhere.com/prenota/" class="btn btn-danger">Prenota altro orario</a>
+    </p>
+{% endblock %}

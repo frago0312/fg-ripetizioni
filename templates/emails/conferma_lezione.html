@@ -1,0 +1,20 @@
+{% extends 'emails/base_email.html' %}
+
+{% block content %}
+    <h3>✅ Lezione Confermata!</h3>
+    <p>Ciao <strong>{{ lezione.studente.first_name }}</strong>, ho accettato la tua richiesta.</p>
+
+    <div class="info-box">
+        📅 <strong>Quando:</strong> {{ lezione.data_inizio|date:"l d F" }} ore {{ lezione.data_inizio|date:"H:i" }}<br>
+        📍 <strong>Dove:</strong> {{ lezione.get_luogo_display }}<br>
+        💶 <strong>Importo:</strong> € {{ lezione.prezzo }}
+    </div>
+
+    <p>Ti aspetto! Se hai bisogno di cambiare orario, scrivimi su WhatsApp.</p>
+
+    {% if link_calendar %}
+    <p style="text-align: center;">
+        <a href="{{ link_calendar }}" class="btn">📅 Aggiungi a Google Calendar</a>
+    </p>
+    {% endif %}
+{% endblock %}
