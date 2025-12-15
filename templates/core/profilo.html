@@ -4,21 +4,34 @@
 <div class="row justify-content-center">
     <div class="col-md-6">
         <div class="card shadow">
-            <div class="card-header bg-info text-white">
-                <h4 class="mb-0">👤 I tuoi Dati</h4>
+            <div class="card-header bg-transparent text-center pt-4 border-0">
+                <div class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-2" style="width: 64px; height: 64px; font-size: 28px;">
+                    <i class="bi bi-person"></i>
+                </div>
+                <h4 class="fw-bold">I tuoi Dati</h4>
             </div>
-            <div class="card-body">
-                <p class="text-muted small">
-                    Queste informazioni sono facoltative, ma aiutano Francesco a contattarti in caso di urgenza o a raggiungerti se la lezione è a casa tua.
-                </p>
+            <div class="card-body p-4">
+                <div class="alert alert-info d-flex gap-2 align-items-center p-2 mb-4">
+                    <i class="bi bi-info-circle-fill"></i>
+                    <small>Utile per contattarti in caso di urgenza.</small>
+                </div>
+
                 <form method="post">
                     {% csrf_token %}
-                    {{ form.as_p }}
-                    <button type="submit" class="btn btn-success w-100">Salva Modifiche</button>
+
+                    {% for field in form %}
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-secondary">{{ field.label }}</label>
+                        {{ field }}
+                        {% if field.help_text %}<div class="form-text small">{{ field.help_text }}</div>{% endif %}
+                        {% for error in field.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                    </div>
+                    {% endfor %}
+
+                    <div class="d-grid mt-4">
+                        <button type="submit" class="btn btn-primary shadow-sm">Salva Modifiche</button>
+                    </div>
                 </form>
-                <div class="mt-3 text-center">
-                    <a href="{% url 'dashboard' %}" class="text-decoration-none">← Torna alla Dashboard</a>
-                </div>
             </div>
         </div>
     </div>

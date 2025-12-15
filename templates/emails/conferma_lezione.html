@@ -5,9 +5,18 @@
     <p>Ciao <strong>{{ lezione.studente.first_name }}</strong>, ho accettato la tua richiesta.</p>
 
     <div class="info-box">
-        📅 <strong>Quando:</strong> {{ lezione.data_inizio|date:"l d F" }} ore {{ lezione.data_inizio|date:"H:i" }}<br>
-        📍 <strong>Dove:</strong> {{ lezione.get_luogo_display }}<br>
-        💶 <strong>Importo:</strong> € {{ lezione.prezzo }}
+        <div style="margin-bottom: 10px;">
+            <span class="info-label">QUANDO</span><br>
+            <span style="font-size: 16px;">{{ lezione.data_inizio|date:"l d F" }} ore {{ lezione.data_inizio|date:"H:i" }}</span>
+        </div>
+        <div style="margin-bottom: 10px;">
+            <span class="info-label">DOVE</span><br>
+            {{ lezione.get_luogo_display }}
+        </div>
+        <div>
+            <span class="info-label">PREZZO</span><br>
+            € {{ lezione.prezzo }}
+        </div>
     </div>
 
     <p>Ti aspetto! Se hai bisogno di cambiare orario, scrivimi su WhatsApp.</p>

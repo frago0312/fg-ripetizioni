@@ -1,268 +1,204 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="mb-4">
-    <h2 class="text-primary fw-bold"><i class="bi bi-speedometer2"></i> Dashboard Docente</h2>
-    <p class="text-muted small">Pannello di controllo amministrativo</p>
-</div>
-
-<div class="row g-3 mb-4">
-
-    <div class="col-md-4">
-        <div class="card shadow-sm border-left-success h-100">
-            <div class="card-body">
-                <h6 class="text-uppercase text-muted mb-2 small fw-bold">Tariffa Base Oraria</h6>
-                <form method="post" class="d-flex align-items-center">
-                    {% csrf_token %}
-                    <input type="hidden" name="btn_tariffa" value="1">
-                    <div class="input-group input-group-sm">
-                        <span class="input-group-text bg-light border-success text-success">€</span>
-                        {{ form_tariffa.tariffa_base }}
-                        <button class="btn btn-success" type="submit">Salva</button>
-                    </div>
-                </form>
-                <small class="text-muted" style="font-size: 0.7rem;">Modifica il prezzo base per le nuove lezioni.</small>
-            </div>
-        </div>
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold mb-1"><i class="bi bi-speedometer2 text-primary"></i> Dashboard Docente</h2>
+        <p class="text-muted small mb-0">Panoramica amministrativa</p>
     </div>
-
-    <div class="col-md-4">
-        <div class="card shadow-sm border-left-primary h-100">
-            <div class="card-body">
-                <h6 class="text-uppercase text-muted mb-2 small fw-bold">Esporta Excel</h6>
-                <form action="{% url 'export_lezioni_csv' %}" method="get">
-                    <div class="d-flex gap-1 mb-2">
-                        <input type="date" name="dal" class="form-control form-control-sm" placeholder="Dal">
-                        <input type="date" name="al" class="form-control form-control-sm" placeholder="Al">
-                    </div>
-                    <button type="submit" class="btn btn-primary btn-sm w-100">
-                        <i class="bi bi-file-earmark-spreadsheet"></i> Scarica CSV
-                    </button>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-md-4">
-        <div class="card shadow-sm border-left-success h-100 bg-light">
-            <div class="card-body text-center d-flex flex-column justify-content-center">
-                <h6 class="text-uppercase text-muted mb-1 small fw-bold">Guadagno Mese (Pagato)</h6>
-                <h2 class="text-success fw-bold m-0">€ {{ guadagno }}</h2>
-                <small class="text-muted" style="font-size: 0.7rem;">Incassato questo mese</small>
+    <div class="d-flex gap-2 mt-3 mt-md-0">
+        <!-- Stat Card Compatta -->
+        <div class="card bg-success text-white border-0 px-3 py-2 d-flex flex-row align-items-center shadow-sm">
+            <div class="me-3 fs-4"><i class="bi bi-cash-stack"></i></div>
+            <div class="lh-1">
+                <span class="d-block small opacity-75">Incasso Mese</span>
+                <span class="fw-bold fs-5">€ {{ guadagno }}</span>
             </div>
         </div>
     </div>
 </div>
 
-<div class="row g-4 mb-4">
-    <div class="col-lg-6">
-        <div class="card shadow border-left-warning h-100">
-            <div class="card-header bg-warning text-dark fw-bold d-flex justify-content-between align-items-center">
-                <span><i class="bi bi-hourglass-split"></i> Richieste in Attesa</span>
-                <span class="badge bg-dark text-white rounded-pill">{{ richieste.count }}</span>
-            </div>
-            <div class="card-body p-0">
-                <div class="list-group list-group-flush">
-                    {% for lezione in richieste %}
-                    <div class="list-group-item">
-                        <div class="d-flex w-100 justify-content-between align-items-center mb-1">
-                            <h6 class="mb-0 fw-bold">{{ lezione.studente.first_name }} {{ lezione.studente.last_name }}</h6>
-                            <span class="badge bg-light text-dark border">{{ lezione.data_inizio|date:"d/m H:i" }}</span>
-                        </div>
-                        <p class="mb-2 small text-muted">
-                            {{ lezione.durata_ore }}h - {{ lezione.get_luogo_display }} <br>
-                            {% if lezione.note %}
-                                <i class="bi bi-chat-quote"></i> <em>{{ lezione.note }}</em>
-                            {% endif %}
-                        </p>
-
-                        <div class="d-flex gap-2">
-                            <a href="{% url 'gestisci_lezione' lezione.id 'accetta' %}" class="btn btn-success btn-sm flex-grow-1">
-                                <i class="bi bi-check-lg"></i> Accetta
-                            </a>
-                            <a href="{% url 'gestisci_lezione' lezione.id 'rifiuta' %}" class="btn btn-outline-danger btn-sm">
-                                <i class="bi bi-x-lg"></i>
-                            </a>
-
-                            {% if lezione.studente.profilo.telefono %}
-                            <a href="https://wa.me/{{ lezione.studente.profilo.telefono|cut:' ' }}" target="_blank" class="btn btn-success btn-sm" style="background-color: #25D366; border:none;" title="Scrivi su WhatsApp">
-                                <i class="bi bi-whatsapp"></i>
-                            </a>
-                            {% endif %}
-                        </div>
+<!-- Sezione 1: Richieste Pendenti (Priorità Alta) -->
+{% if richieste %}
+<div class="card border-warning border-2 shadow mb-4">
+    <div class="card-header bg-warning-subtle text-warning-emphasis fw-bold d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-bell-fill me-2"></i> Richieste in Attesa</span>
+        <span class="badge bg-warning text-dark border border-dark rounded-circle">{{ richieste.count }}</span>
+    </div>
+    <div class="list-group list-group-flush">
+        {% for lezione in richieste %}
+        <div class="list-group-item p-3">
+            <div class="row align-items-center">
+                <div class="col-md-4 mb-2 mb-md-0">
+                    <h6 class="mb-0 fw-bold text-primary">{{ lezione.studente.first_name }} {{ lezione.studente.last_name }}</h6>
+                    <small class="text-muted">
+                        {% if lezione.studente.profilo.telefono %}
+                            <i class="bi bi-whatsapp text-success"></i> {{ lezione.studente.profilo.telefono }}
+                        {% endif %}
+                    </small>
+                </div>
+                <div class="col-md-4 mb-2 mb-md-0">
+                    <div class="d-flex flex-column">
+                        <span class="fw-bold"><i class="bi bi-calendar-event me-1"></i> {{ lezione.data_inizio|date:"l d/m H:i" }}</span>
+                        <small class="text-muted">{{ lezione.durata_ore }}h - {{ lezione.get_luogo_display }}</small>
+                        {% if lezione.note %}<small class="fst-italic text-secondary">"{{ lezione.note }}"</small>{% endif %}
                     </div>
-                    {% empty %}
-                    <div class="p-4 text-center text-muted">
-                        <i class="bi bi-check-circle fs-3 d-block mb-2"></i>
-                        Nessuna richiesta in attesa.
-                    </div>
-                    {% endfor %}
+                </div>
+                <div class="col-md-4 text-md-end d-flex gap-2 justify-content-md-end">
+                    <a href="{% url 'gestisci_lezione' lezione.id 'accetta' %}" class="btn btn-success btn-sm flex-grow-1 flex-md-grow-0 px-3">
+                        <i class="bi bi-check-lg"></i> Accetta
+                    </a>
+                    <a href="{% url 'gestisci_lezione' lezione.id 'rifiuta' %}" class="btn btn-outline-danger btn-sm flex-grow-1 flex-md-grow-0 px-3">
+                        <i class="bi bi-x-lg"></i> Rifiuta
+                    </a>
                 </div>
             </div>
         </div>
+        {% endfor %}
     </div>
+</div>
+{% endif %}
 
-    <div class="col-lg-6">
-        <div class="card shadow border-left-primary h-100">
-            <div class="card-header bg-primary text-white fw-bold">
-                <i class="bi bi-calendar-event"></i> Prossime Lezioni
+<div class="row g-4">
+    <!-- Lezioni Future -->
+    <div class="col-lg-8">
+        <div class="card h-100 shadow-sm">
+            <div class="card-header bg-transparent fw-bold py-3">
+                <i class="bi bi-calendar-check me-2 text-primary"></i> Prossime Lezioni
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive">
-                    <table class="table table-hover mb-0 align-middle">
-                        <thead class="table-light">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="bg-body-secondary text-secondary small">
                             <tr>
                                 <th class="ps-3">Data</th>
                                 <th>Studente</th>
-                                <th>€</th>
-                                <th class="text-end pe-3">Stato</th>
+                                <th>Importo</th>
+                                <th class="text-end pe-3">Stato Pagamento</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for lezione in future|slice:":10" %}
                             <tr>
-                                <td class="ps-3 fw-bold text-primary">{{ lezione.data_inizio|date:"d/m H:i" }}</td>
+                                <td class="ps-3">
+                                    <span class="fw-bold text-primary">{{ lezione.data_inizio|date:"d/m" }}</span>
+                                    <span class="ms-1 text-muted">{{ lezione.data_inizio|date:"H:i" }}</span>
+                                </td>
                                 <td>
-                                    {{ lezione.studente.first_name }}
-                                    {% if lezione.studente.profilo.telefono %}
-                                    <a href="https://wa.me/{{ lezione.studente.profilo.telefono|cut:' ' }}" target="_blank" class="text-success ms-1 small">
+                                    {{ lezione.studente.first_name }} {{ lezione.studente.last_name|slice:":1" }}.
+                                    <a href="https://wa.me/{{ lezione.studente.profilo.telefono|cut:' ' }}" target="_blank" class="text-success ms-1 text-decoration-none">
                                         <i class="bi bi-whatsapp"></i>
                                     </a>
-                                    {% endif %}
                                 </td>
-                                <td>
-                                    <small>€{{ lezione.prezzo }}</small>
-                                </td>
+                                <td>€{{ lezione.prezzo }}</td>
                                 <td class="text-end pe-3">
                                     {% if lezione.pagata %}
-                                        <span class="badge bg-success"><i class="bi bi-check"></i> Pagata</span>
+                                        <span class="badge bg-success-subtle text-success"><i class="bi bi-check-all"></i> Pagata</span>
                                     {% else %}
-                                        <a href="{% url 'gestisci_lezione' lezione.id 'pagata' %}" class="btn btn-outline-secondary btn-sm py-0" style="font-size: 0.7rem;">
+                                        <a href="{% url 'gestisci_lezione' lezione.id 'pagata' %}" class="btn btn-sm btn-outline-secondary py-0" style="font-size: 0.75rem;">
                                             Segna Pagata
                                         </a>
                                     {% endif %}
                                 </td>
                             </tr>
                             {% empty %}
-                            <tr><td colspan="4" class="text-center p-4 text-muted">Nessuna lezione futura in programma.</td></tr>
+                            <tr><td colspan="4" class="text-center py-4 text-muted">Nessuna lezione futura.</td></tr>
                             {% endfor %}
                         </tbody>
                     </table>
                 </div>
             </div>
+            <div class="card-footer bg-transparent border-0 text-center">
+                <form action="{% url 'export_lezioni_csv' %}" method="get" class="d-inline-flex gap-2 align-items-center">
+                    <small class="fw-bold text-muted">Export:</small>
+                    <input type="date" name="dal" class="form-control form-control-sm" style="width: auto;">
+                    <input type="date" name="al" class="form-control form-control-sm" style="width: auto;">
+                    <button type="submit" class="btn btn-outline-primary btn-sm"><i class="bi bi-download"></i> CSV</button>
+                </form>
+            </div>
         </div>
     </div>
-</div>
 
-<div class="row g-4">
-
-    <div class="col-lg-6">
-        <div class="card shadow border-left-info h-100">
-            <div class="card-header bg-info text-white fw-bold">
-                <i class="bi bi-clock"></i> Orari Settimanali
-            </div>
+    <!-- Colonna Configurazioni -->
+    <div class="col-lg-4">
+        <!-- Tariffa -->
+        <div class="card shadow-sm mb-4">
             <div class="card-body">
-                <form method="post" class="mb-4 p-3 bg-light rounded">
+                <h6 class="fw-bold text-secondary text-uppercase small mb-3">Tariffa Base</h6>
+                <form method="post" class="d-flex">
                     {% csrf_token %}
-                    <input type="hidden" name="btn_disponibilita" value="1">
-                    <h6 class="small text-muted fw-bold mb-2">AGGIUNGI / MODIFICA ORARIO</h6>
-
-                    <div class="row g-2 align-items-end">
-                        <div class="col-12">
-                            {{ form_disp.giorno }}
-                        </div>
-                        <div class="col-5">
-                            <label class="small text-muted">Inizio</label>
-                            {{ form_disp.ora_inizio }}
-                        </div>
-                        <div class="col-5">
-                            <label class="small text-muted">Fine</label>
-                            {{ form_disp.ora_fine }}
-                        </div>
-                        <div class="col-2">
-                            <button type="submit" class="btn btn-info text-white w-100"><i class="bi bi-plus-lg"></i></button>
-                        </div>
+                    <input type="hidden" name="btn_tariffa" value="1">
+                    <div class="input-group">
+                        <span class="input-group-text bg-light text-secondary">€</span>
+                        {{ form_tariffa.tariffa_base }}
+                        <button class="btn btn-dark" type="submit">Salva</button>
                     </div>
                 </form>
-
-                <div class="table-responsive">
-                    <table class="table table-sm mb-0">
-                        <tbody>
-                            {% for d in disponibilita_list %}
-                            <tr>
-                                <td class="fw-bold">{{ d.get_giorno_display }}</td>
-                                <td>{{ d.ora_inizio|date:"H:i" }} - {{ d.ora_fine|date:"H:i" }}</td>
-                                <td class="text-end">
-                                    <a href="{% url 'elimina_disponibilita' d.id %}" class="text-danger" onclick="return confirm('Eliminare?');">
-                                        <i class="bi bi-trash"></i>
-                                    </a>
-                                </td>
-                            </tr>
-                            {% empty %}
-                            <tr><td colspan="3" class="text-center small text-muted">Nessuna disponibilità impostata.</td></tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
             </div>
         </div>
-    </div>
 
-    <div class="col-lg-6">
-        <div class="card shadow border-left-danger h-100">
-            <div class="card-header bg-danger text-white fw-bold">
-                <i class="bi bi-calendar-x"></i> Ferie & Chiusure
-            </div>
-            <div class="card-body">
-                <form method="post" class="mb-4 p-3 bg-light rounded">
-                    {% csrf_token %}
-                    <input type="hidden" name="btn_chiusura" value="1">
-                    <h6 class="small text-muted fw-bold mb-2">BLOCCA DATE</h6>
+        <!-- Orari e Disponibilità (Accordion per risparmiare spazio) -->
+        <div class="accordion shadow-sm" id="configAccordion">
 
-                    <div class="row g-2">
-                        <div class="col-6">
-                            <label class="small text-muted">Dal</label>
-                            {{ form_chiusura.data_inizio }}
-                        </div>
-                        <div class="col-6">
-                            <label class="small text-muted">Al (Opzionale)</label>
-                            {{ form_chiusura.data_fine }}
-                        </div>
-                        <div class="col-12 mt-2">
-                            <div class="input-group">
-                                {{ form_chiusura.motivo }}
-                                <button type="submit" class="btn btn-danger"><i class="bi bi-lock-fill"></i></button>
+            <!-- Orari -->
+            <div class="accordion-item border-0">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOrari">
+                        <i class="bi bi-clock me-2 text-info"></i> Orari Settimanali
+                    </button>
+                </h2>
+                <div id="collapseOrari" class="accordion-collapse collapse" data-bs-parent="#configAccordion">
+                    <div class="accordion-body bg-light">
+                        <form method="post" class="mb-3">
+                            {% csrf_token %}
+                            <input type="hidden" name="btn_disponibilita" value="1">
+                            <div class="row g-2">
+                                <div class="col-12">{{ form_disp.giorno }}</div>
+                                <div class="col-5">{{ form_disp.ora_inizio }}</div>
+                                <div class="col-5">{{ form_disp.ora_fine }}</div>
+                                <div class="col-2"><button class="btn btn-info text-white w-100 p-1" type="submit"><i class="bi bi-plus"></i></button></div>
                             </div>
-                        </div>
-                    </div>
-                </form>
-
-                <div class="table-responsive">
-                    <table class="table table-sm mb-0">
-                        <tbody>
-                            {% for c in chiusure_future %}
-                            <tr>
-                                <td>
-                                    <span class="fw-bold text-danger">
-                                        {% if c.data_inizio == c.data_fine %}
-                                            {{ c.data_inizio|date:"d M" }}
-                                        {% else %}
-                                            {{ c.data_inizio|date:"d/m" }}-{{ c.data_fine|date:"d/m" }}
-                                        {% endif %}
-                                    </span>
-                                </td>
-                                <td class="small text-muted">{{ c.motivo }}</td>
-                                <td class="text-end">
-                                    <a href="{% url 'elimina_chiusura' c.id %}" class="text-secondary" onclick="return confirm('Riaprire queste date?');">
-                                        <i class="bi bi-trash"></i>
-                                    </a>
-                                </td>
-                            </tr>
-                            {% empty %}
-                            <tr><td colspan="3" class="text-center small text-muted">Nessuna chiusura programmata.</td></tr>
+                        </form>
+                        <ul class="list-group list-group-flush small">
+                            {% for d in disponibilita_list %}
+                            <li class="list-group-item bg-transparent d-flex justify-content-between align-items-center px-0">
+                                <span><strong>{{ d.get_giorno_display }}</strong> {{ d.ora_inizio|date:"H:i" }}-{{ d.ora_fine|date:"H:i" }}</span>
+                                <a href="{% url 'elimina_disponibilita' d.id %}" class="text-danger"><i class="bi bi-trash"></i></a>
+                            </li>
                             {% endfor %}
-                        </tbody>
-                    </table>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ferie -->
+            <div class="accordion-item border-0 border-top">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFerie">
+                        <i class="bi bi-calendar-x me-2 text-danger"></i> Ferie & Chiusure
+                    </button>
+                </h2>
+                <div id="collapseFerie" class="accordion-collapse collapse" data-bs-parent="#configAccordion">
+                    <div class="accordion-body bg-light">
+                        <form method="post" class="mb-3">
+                            {% csrf_token %}
+                            <input type="hidden" name="btn_chiusura" value="1">
+                            <div class="mb-2">{{ form_chiusura.data_inizio }}</div>
+                            <div class="mb-2">{{ form_chiusura.data_fine }}</div>
+                            <div class="input-group input-group-sm">
+                                {{ form_chiusura.motivo }}
+                                <button class="btn btn-danger" type="submit">Blocca</button>
+                            </div>
+                        </form>
+                        <ul class="list-group list-group-flush small">
+                            {% for c in chiusure_future %}
+                            <li class="list-group-item bg-transparent d-flex justify-content-between align-items-center px-0">
+                                <span><span class="text-danger fw-bold">{{ c.data_inizio|date:"d/m" }}</span>: {{ c.motivo }}</span>
+                                <a href="{% url 'elimina_chiusura' c.id %}" class="text-secondary"><i class="bi bi-trash"></i></a>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
                 </div>
             </div>
         </div>

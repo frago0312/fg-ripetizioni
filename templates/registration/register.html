@@ -1,48 +1,38 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="row justify-content-center mt-5">
-    <div class="col-md-6 col-lg-4">
-        <div class="card shadow-lg border-0 rounded-3">
-            <div class="card-body p-4">
-                <h3 class="text-center mb-4 fw-bold text-primary">Registrati</h3>
+<div class="row justify-content-center mt-4">
+    <div class="col-md-7 col-lg-5">
+        <div class="card shadow-lg">
+            <div class="card-body p-4 p-md-5">
+                <h3 class="fw-bold text-center mb-2">Crea Account</h3>
+                <p class="text-center text-secondary small mb-4">Inizia a prenotare le tue ripetizioni oggi stesso.</p>
 
                 <form method="post">
                     {% csrf_token %}
 
-                    <!-- Loop per rendere i campi del form carini singolarmente -->
                     {% for field in form %}
                     <div class="mb-3">
-                        <label class="form-label small fw-bold text-secondary">{{ field.label }}</label>
+                        <label class="form-label fw-bold small">{{ field.label }}</label>
                         {{ field }}
                         {% if field.help_text %}
-                            <div class="form-text text-muted small">{{ field.help_text }}</div>
+                            <div class="form-text small">{{ field.help_text }}</div>
                         {% endif %}
                         {% for error in field.errors %}
-                            <div class="text-danger small">{{ error }}</div>
+                            <div class="text-danger small mt-1"><i class="bi bi-exclamation-circle"></i> {{ error }}</div>
                         {% endfor %}
                     </div>
                     {% endfor %}
 
-                    <div class="d-grid gap-2 mt-4">
-                        <button type="submit" class="btn btn-primary btn-lg shadow-sm">Crea Account</button>
+                    <div class="d-grid mt-4">
+                        <button type="submit" class="btn btn-primary btn-lg shadow-sm">Registrati</button>
                     </div>
                 </form>
-
-                <div class="text-center mt-4">
-                    <p class="small text-muted">Hai già un account? <a href="{% url 'login' %}" class="text-decoration-none fw-bold">Accedi qui</a></p>
-                </div>
+            </div>
+            <div class="card-footer bg-transparent text-center border-0 pb-4">
+                <small class="text-muted">Hai già un account? <a href="{% url 'login' %}" class="fw-bold text-decoration-none">Accedi</a></small>
             </div>
         </div>
     </div>
 </div>
-
-<!-- Script per aggiungere classi CSS ai campi generati da Django automaticamente -->
-<script>
-    // Un piccolo trucco JS per applicare lo stile Bootstrap ai campi standard di Django
-    var inputs = document.querySelectorAll('input');
-    inputs.forEach(function(input) {
-        input.classList.add('form-control');
-    });
-</script>
 {% endblock %}
