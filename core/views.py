@@ -2,27 +2,25 @@ from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.db.models import Sum
 from django.contrib import messages
-from django.core.mail import send_mail
 from django.conf import settings
 from django.http import HttpResponse
-from datetime import datetime, timedelta, time
+from datetime import datetime, timedelta
 from django.utils import timezone
 from django.utils.http import urlencode
 from django.contrib.admin.views.decorators import staff_member_required
 import csv
 
-# IMPORTA TUTTI I FORM (Compresi quelli nuovi per Tariffa e Disponibilità)
 from .forms import (
     PrenotazioneForm, RegistrazioneForm, ProfiloForm,
     ChiusuraForm, DisponibilitaForm, ImpostazioniForm
 )
-# IMPORTA TUTTI I MODELLI
 from .models import Lezione, Disponibilita, Profilo, GiornoChiusura, Impostazioni
 from .utils import invia_email_custom
 
 
 @login_required
 def dashboard(request):
+    # Uso select_related per evitare 100 query se ho 100 lezioni (N+1 problem)
     lezioni = Lezione.objects.filter(studente=request.user) \
         .select_related('studente', 'studente__profilo') \
         .order_by('-data_inizio')
@@ -44,7 +42,7 @@ def prenota(request):
             lezione.studente = request.user
             lezione.save()
 
-            # --- NUOVA GESTIONE MAIL AL PROF ---
+            # Avviso me stesso via mail quando qualcuno prenota
             invia_email_custom(
                 soggetto=f"Nuova Lezione: {request.user.username}",
                 destinatari=[settings.EMAIL_HOST_USER],
@@ -74,6 +72,10 @@ def registrazione(request):
 
 
 def get_orari_disponibili(request):
+    """
+    API usata da HTMX nel form di prenotazione.
+    Restituisce le <option> HTML con gli orari liberi per la data selezionata.
+    """
     data_str = request.GET.get('data')
     if not data_str:
         return HttpResponse("<option value=''>Seleziona prima una data</option>")
@@ -83,7 +85,7 @@ def get_orari_disponibili(request):
     except ValueError:
         return HttpResponse("<option value=''>Data non valida</option>")
 
-    # CONTROLLO CHIUSURE/FERIE
+    # 1. Verifico se quel giorno sono in ferie
     chiusura = GiornoChiusura.objects.filter(
         data_inizio__lte=data_scelta,
         data_fine__gte=data_scelta
@@ -94,13 +96,13 @@ def get_orari_disponibili(request):
 
     giorno_settimana = data_scelta.weekday()
 
-    # 1. Cerchiamo la tua disponibilità per quel giorno nel DB
+    # 2. Controllo la mia disponibilità base per quel giorno della settimana
     try:
         disp = Disponibilita.objects.get(giorno=giorno_settimana)
     except Disponibilita.DoesNotExist:
         return HttpResponse("<option value=''>Nessuna lezione in questo giorno</option>")
 
-    # 2. Generiamo gli slot di 30 minuti
+    # 3. Genero tutti gli slot possibili ogni 30 minuti
     orari_possibili = []
     ora_corrente = datetime.combine(data_scelta, disp.ora_inizio)
     ora_fine = datetime.combine(data_scelta, disp.ora_fine)
@@ -109,7 +111,7 @@ def get_orari_disponibili(request):
         orari_possibili.append(ora_corrente)
         ora_corrente += timedelta(minutes=30)
 
-    # 3. Filtriamo quelli occupati
+    # 4. Recupero le lezioni già fissate per escludere gli slot occupati
     lezioni_giorno = Lezione.objects.filter(
         data_inizio__date=data_scelta,
         stato__in=['RICHIESTA', 'CONFERMATA']
@@ -119,7 +121,8 @@ def get_orari_disponibili(request):
     for orario in orari_possibili:
         occupato = False
         inizio_slot = timezone.make_aware(orario)
-        # Check semplice: occupato se c'è sovrapposizione
+
+        # Logica sovrapposizione: verifico se lo slot corrente cade dentro una lezione esistente
         for lezione in lezioni_giorno:
             lezione_inizio = lezione.data_inizio
             durata = float(lezione.durata_ore) if lezione.durata_ore else 1.0
@@ -141,6 +144,7 @@ def get_orari_disponibili(request):
 
 @login_required
 def profilo_view(request):
+    # Uso get_or_create logic ma manuale per gestire meglio i try/except
     try:
         profilo = request.user.profilo
     except Profilo.DoesNotExist:
@@ -158,13 +162,11 @@ def profilo_view(request):
     return render(request, 'core/profilo.html', {'form': form})
 
 
-# --- DASHBOARD DOCENTE (COMPLETA CON TUTTE LE GESTIONI) ---
 @staff_member_required
 def dashboard_docente(request):
-    # Recuperiamo l'oggetto impostazioni esistente (o None)
     config_obj = Impostazioni.objects.first()
 
-    # --- 1. GESTIONE CAMBIO TARIFFA ---
+    # --- CAMBIO TARIFFA ---
     if request.method == 'POST' and 'btn_tariffa' in request.POST:
         form_tariffa = ImpostazioniForm(request.POST, instance=config_obj)
         if form_tariffa.is_valid():
@@ -174,7 +176,7 @@ def dashboard_docente(request):
     else:
         form_tariffa = ImpostazioniForm(instance=config_obj)
 
-    # --- 2. GESTIONE CHIUSURE (FERIE) ---
+    # --- GESTIONE FERIE ---
     if request.method == 'POST' and 'btn_chiusura' in request.POST:
         form_chiusura = ChiusuraForm(request.POST)
         if form_chiusura.is_valid():
@@ -184,36 +186,37 @@ def dashboard_docente(request):
     else:
         form_chiusura = ChiusuraForm()
 
-    # --- 3. GESTIONE DISPONIBILITÀ (ORARI SETTIMANALI) ---
+    # --- ORARI SETTIMANALI ---
     if request.method == 'POST' and 'btn_disponibilita' in request.POST:
         form_disp = DisponibilitaForm(request.POST)
         if form_disp.is_valid():
             giorno = form_disp.cleaned_data['giorno']
-            inizio = form_disp.cleaned_data['ora_inizio']
-            fine = form_disp.cleaned_data['ora_fine']
-
+            # Update_or_create è perfetto qui: se c'è già un orario per quel giorno, lo sovrascrive
             Disponibilita.objects.update_or_create(
                 giorno=giorno,
-                defaults={'ora_inizio': inizio, 'ora_fine': fine}
+                defaults={
+                    'ora_inizio': form_disp.cleaned_data['ora_inizio'],
+                    'ora_fine': form_disp.cleaned_data['ora_fine']
+                }
             )
             messages.success(request, "Orario settimanale aggiornato!")
             return redirect('dashboard_docente')
     else:
         form_disp = DisponibilitaForm()
 
-    # --- DATI STANDARD DASHBOARD ---
+    # --- CARICAMENTO DATI ---
     oggi = timezone.now()
 
-    richieste = Lezione.objects.filter(
-        stato='RICHIESTA'
-    ).select_related('studente', 'studente__profilo').order_by('data_inizio')
+    # Query ottimizzate con select_related per la dashboard
+    richieste = Lezione.objects.filter(stato='RICHIESTA') \
+        .select_related('studente', 'studente__profilo') \
+        .order_by('data_inizio')
 
-    future = Lezione.objects.filter(
-        stato='CONFERMATA',
-        data_inizio__gte=oggi
-    ).select_related('studente', 'studente__profilo').order_by('data_inizio')
+    future = Lezione.objects.filter(stato='CONFERMATA', data_inizio__gte=oggi) \
+        .select_related('studente', 'studente__profilo') \
+        .order_by('data_inizio')
 
-    inizio_mese = today = timezone.now().date().replace(day=1)
+    inizio_mese = timezone.now().date().replace(day=1)
     guadagno = Lezione.objects.filter(
         stato='CONFERMATA',
         data_inizio__gte=inizio_mese,
@@ -231,7 +234,7 @@ def dashboard_docente(request):
         'chiusure_future': chiusure_future,
         'form_disp': form_disp,
         'disponibilita_list': disponibilita_list,
-        'form_tariffa': form_tariffa,  # <-- Passato al template
+        'form_tariffa': form_tariffa,
     })
 
 
@@ -259,7 +262,7 @@ def gestisci_lezione(request, lezione_id, azione):
         lezione.stato = 'CONFERMATA'
         lezione.save()
 
-        # --- CALENDARIO ---
+        # Genero link per Google Calendar
         inizio = lezione.data_inizio
         fine = inizio + timedelta(hours=float(lezione.durata_ore))
         fmt = "%Y%m%dT%H%M%S"
@@ -272,7 +275,6 @@ def gestisci_lezione(request, lezione_id, azione):
         }
         link_calendar = f"https://calendar.google.com/calendar/render?{urlencode(params)}"
 
-        # --- NUOVA GESTIONE MAIL CONFERMA ---
         if lezione.studente.email:
             invia_email_custom(
                 soggetto='✅ Lezione Confermata',
@@ -289,7 +291,6 @@ def gestisci_lezione(request, lezione_id, azione):
         lezione.stato = 'RIFIUTATA'
         lezione.save()
 
-        # --- NUOVA GESTIONE MAIL RIFIUTO ---
         if lezione.studente.email:
             invia_email_custom(
                 soggetto='❌ Aggiornamento Lezione',

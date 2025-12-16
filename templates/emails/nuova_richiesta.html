@@ -10,8 +10,11 @@
         <strong>Ora:</strong> {{ lezione.data_inizio|date:"H:i" }}<br>
         <strong>Durata:</strong> {{ lezione.durata_ore }} ore<br>
         <strong>Luogo:</strong> {{ lezione.get_luogo_display }}
+
         {% if lezione.note %}
-        <br><strong>Note:</strong> {{ lezione.note }}
+            <br><br>
+            <strong>Note dello studente:</strong><br>
+            <em>"{{ lezione.note }}"</em>
         {% endif %}
     </div>
 

@@ -6,14 +6,14 @@
         <div class="card shadow-lg">
             <div class="card-body p-4 p-md-5">
                 <h3 class="fw-bold text-center mb-2">Crea Account</h3>
-                <p class="text-center text-secondary small mb-4">Inizia a prenotare le tue ripetizioni oggi stesso.</p>
+                <p class="text-center text-body-secondary small mb-4">Inizia a prenotare le tue ripetizioni oggi stesso.</p>
 
                 <form method="post">
                     {% csrf_token %}
 
                     {% for field in form %}
                     <div class="mb-3">
-                        <label class="form-label fw-bold small">{{ field.label }}</label>
+                        <label class="form-label fw-bold small text-body-secondary">{{ field.label }}</label>
                         {{ field }}
                         {% if field.help_text %}
                             <div class="form-text small">{{ field.help_text }}</div>
@@ -30,7 +30,7 @@
                 </form>
             </div>
             <div class="card-footer bg-transparent text-center border-0 pb-4">
-                <small class="text-muted">Hai già un account? <a href="{% url 'login' %}" class="fw-bold text-decoration-none">Accedi</a></small>
+                <small class="text-body-secondary">Hai già un account? <a href="{% url 'login' %}" class="fw-bold text-decoration-none">Accedi</a></small>
             </div>
         </div>
     </div>

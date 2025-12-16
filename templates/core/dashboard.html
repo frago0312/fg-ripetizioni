@@ -14,9 +14,7 @@
 </div>
 
 <div class="row g-4">
-    <!-- Colonna Sinistra: Stato Pagamenti e Azioni -->
     <div class="col-lg-4">
-        <!-- Card Pagamento -->
         <div class="card mb-4 border-0 position-relative overflow-hidden text-white"
              style="background: {% if da_pagare > 0 %}linear-gradient(135deg, #ef4444 0%, #b91c1c 100%){% else %}linear-gradient(135deg, #10b981 0%, #059669 100%){% endif %};">
 
@@ -34,12 +32,11 @@
                     </div>
                 {% endif %}
             </div>
-            <!-- Decorative circle -->
+
             <i class="bi {% if da_pagare > 0 %}bi-wallet2{% else %}bi-stars{% endif %} position-absolute"
                style="font-size: 10rem; opacity: 0.1; right: -20px; bottom: -40px;"></i>
         </div>
 
-        <!-- Azioni Rapide -->
         <div class="card shadow-sm">
             <div class="card-body p-4">
                 <h6 class="fw-bold text-body-secondary mb-3 text-uppercase small">Azioni Rapide</h6>
@@ -55,7 +52,6 @@
         </div>
     </div>
 
-    <!-- Colonna Destra: Lista Lezioni -->
     <div class="col-lg-8">
         <div class="card h-100 shadow-sm">
             <div class="card-header bg-transparent d-flex justify-content-between align-items-center">

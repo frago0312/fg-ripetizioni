@@ -22,15 +22,15 @@ class PrenotazioneForm(forms.ModelForm):
         widget=forms.DateInput(attrs={
             'type': 'date',
             'class': 'form-control',
-            # QUI STA LA MAGIA HTMX:
+            # HTMX: quando cambi la data, ricarico la select delle ore
             'hx-get': '/htmx/get-orari/',
             'hx-target': '#id_ora',
-            'hx-trigger': 'change'
+            'hx-trigger': 'change',
+            'hx-indicator': '#loading-spinner'
         }),
         label="Giorno Desiderato"
     )
 
-    # Inizialmente vuoto, verrà riempito da HTMX o dalla validazione
     ora = forms.ChoiceField(
         choices=[],
         widget=forms.Select(attrs={'class': 'form-select'}),
@@ -48,8 +48,8 @@ class PrenotazioneForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Se c'è un input (POST), dobbiamo popolare le scelte dell'ora
-        # altrimenti Django dice "Scelta non valida"
+        # Fix per Django: se non popolo le choices nel POST, la validazione fallisce
+        # perché il valore scelto non esiste nella lista vuota iniziale.
         if 'data' in self.data and 'ora' in self.data:
             self.fields['ora'].choices = [(self.data['ora'], self.data['ora'])]
 
@@ -64,27 +64,24 @@ class PrenotazioneForm(forms.ModelForm):
             inizio_richiesto = datetime.datetime.strptime(orario_str, "%Y-%m-%d %H:%M")
             inizio_richiesto = timezone.make_aware(inizio_richiesto)
 
-            # Validazione: Controlla se il giorno è disponibile nel DB
+            # 1. Controllo se quel giorno della settimana lavoro
             giorno_sett = inizio_richiesto.weekday()
             try:
                 disp = Disponibilita.objects.get(giorno=giorno_sett)
             except Disponibilita.DoesNotExist:
                 raise forms.ValidationError("In questo giorno non faccio lezione (controlla Admin).")
 
-            # Controllo range orario
-            ora_inizio_disp = datetime.datetime.combine(data_scelta, disp.ora_inizio)
-            ora_fine_disp = datetime.datetime.combine(data_scelta, disp.ora_fine)
-
-            # Rendiamo offset-aware per il confronto
-            ora_inizio_disp = timezone.make_aware(ora_inizio_disp)
-            ora_fine_disp = timezone.make_aware(ora_fine_disp)
+            # 2. Controllo range orario (es. non sforare dopo le 20:00)
+            ora_inizio_disp = timezone.make_aware(datetime.datetime.combine(data_scelta, disp.ora_inizio))
+            ora_fine_disp = timezone.make_aware(datetime.datetime.combine(data_scelta, disp.ora_fine))
 
             fine_richiesta = inizio_richiesto + timedelta(hours=float(durata))
 
             if inizio_richiesto < ora_inizio_disp or fine_richiesta > ora_fine_disp:
                 raise forms.ValidationError(f"Orario fuori disponibilità ({disp.ora_inizio} - {disp.ora_fine})")
 
-            # Controllo sovrapposizioni
+            # 3. Controllo incroci (Overlap)
+            # Cerco lezioni che finiscono DOPO il mio inizio e iniziano PRIMA della mia fine
             conflitti = Lezione.objects.filter(
                 stato__in=['RICHIESTA', 'CONFERMATA'],
                 data_inizio__lt=fine_richiesta,
@@ -134,9 +131,9 @@ class ChiusuraForm(forms.ModelForm):
         inizio = cleaned_data.get("data_inizio")
         fine = cleaned_data.get("data_fine")
 
-        # Se c'è una data fine, controlliamo che non sia antecedente all'inizio
         if fine and fine < inizio:
             self.add_error('data_fine', "La data fine non può essere prima dell'inizio!")
+
 
 class DisponibilitaForm(forms.ModelForm):
     class Meta:
@@ -147,6 +144,7 @@ class DisponibilitaForm(forms.ModelForm):
             'ora_inizio': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
             'ora_fine': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
         }
+
 
 class ImpostazioniForm(forms.ModelForm):
     class Meta:

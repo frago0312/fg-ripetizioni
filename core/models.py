@@ -19,7 +19,7 @@ class GiornoChiusura(models.Model):
     motivo = models.CharField(max_length=100, blank=True, help_text="Es. Vacanze Estive")
 
     def save(self, *args, **kwargs):
-        # Se l'utente non mette la data fine, consideriamo che sia un giorno solo
+        # UX: Se l'utente lascia vuota la fine, assumo sia una chiusura di un solo giorno
         if not self.data_fine:
             self.data_fine = self.data_inizio
         super().save(*args, **kwargs)
@@ -44,9 +44,7 @@ class Lezione(models.Model):
 
     studente = models.ForeignKey(User, on_delete=models.CASCADE, related_name='lezioni')
     data_inizio = models.DateTimeField(help_text="Giorno e ora inizio")
-    # Ora accettiamo 1.5 (un'ora e mezza)
-    durata_ore = models.DecimalField(max_digits=3, decimal_places=1, default=1.0,
-                                     help_text="Durata in ore (es. 1.5 per un'ora e mezza)")
+    durata_ore = models.DecimalField(max_digits=3, decimal_places=1, default=1.0, help_text="Durata in ore (es. 1.5 per un'ora e mezza)")
     luogo = models.CharField(max_length=20, choices=LUOGO_SCELTE, default='BASE')
 
     STATO_SCELTE = [
@@ -61,6 +59,8 @@ class Lezione(models.Model):
     note = models.TextField(blank=True, null=True)
 
     def save(self, *args, **kwargs):
+        # Snapshot del prezzo: calcolo il costo solo alla creazione (o se manca).
+        # In questo modo, se alzo la tariffa in futuro, le vecchie lezioni restano invariate.
         if self.pk is None or self.prezzo is None:
             config = Impostazioni.objects.first()
             tariffa_base_db = config.tariffa_base if config else Decimal(10.00)
@@ -72,7 +72,6 @@ class Lezione(models.Model):
                 extra = 4.00
             elif self.luogo == 'FASCIA_30':
                 extra = 8.00
-            # ...
 
             costo_ore = tariffa_base_db * Decimal(self.durata_ore)
             self.prezzo = costo_ore + Decimal(extra)
@@ -85,7 +84,6 @@ class Lezione(models.Model):
     class Meta:
         verbose_name_plural = "Lezioni"
         ordering = ['-data_inizio']
-
 
 class Disponibilita(models.Model):
     GIORNI = [
@@ -103,8 +101,6 @@ class Disponibilita(models.Model):
         verbose_name_plural = "Disponibilità"
         ordering = ['giorno']
 
-
-# --- NUOVO MODELLO PROFILO ---
 class Profilo(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profilo')
     telefono = models.CharField(max_length=20, blank=True, null=True, help_text="Utile per urgenze (WhatsApp)")
@@ -117,8 +113,8 @@ class Profilo(models.Model):
     class Meta:
         verbose_name_plural = "Profili"
 
-# --- SEGNALI AUTOMATICI ---
-# Quando crei un User, Django crea automaticamente anche il suo Profilo vuoto
+# Garanzia di consistenza: ogni User DEVE avere un Profilo.
+# Lo creo automaticamente sia al signup che in caso di salvataggi da admin/shell.
 @receiver(post_save, sender=User)
 def create_user_profile(sender, instance, created, **kwargs):
     if created:
@@ -126,7 +122,6 @@ def create_user_profile(sender, instance, created, **kwargs):
 
 @receiver(post_save, sender=User)
 def save_user_profile(sender, instance, **kwargs):
-    # Se per caso il profilo non esiste (vecchi utenti), lo crea al salvataggio
     try:
         instance.profilo.save()
     except Profilo.DoesNotExist:
