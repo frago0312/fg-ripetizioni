@@ -61,25 +61,21 @@ class Lezione(models.Model):
     note = models.TextField(blank=True, null=True)
 
     def save(self, *args, **kwargs):
-        # RECUPERO TARIFFA DINAMICA
-        # Prendo la prima configurazione o uso 10.00 come default se non esiste
-        config = Impostazioni.objects.first()
-        tariffa_base_db = config.tariffa_base if config else Decimal(10.00)
+        if self.pk is None or self.prezzo is None:
+            config = Impostazioni.objects.first()
+            tariffa_base_db = config.tariffa_base if config else Decimal(10.00)
 
-        extra = 0
-        if self.luogo == 'RUFINA':
-            extra = 2.00
-        elif self.luogo == 'FASCIA_15':
-            extra = 4.00
-        elif self.luogo == 'FASCIA_30':
-            extra = 8.00
-        elif self.luogo == 'ALTRO':
             extra = 0
+            if self.luogo == 'RUFINA':
+                extra = 2.00
+            elif self.luogo == 'FASCIA_15':
+                extra = 4.00
+            elif self.luogo == 'FASCIA_30':
+                extra = 8.00
+            # ...
 
-        # Ricalcola il prezzo solo se non è stato forzato manualmente (o ricalcola sempre se preferisci)
-        # Qui usiamo la logica: se ricalcolo, uso la tariffa dal DB
-        costo_ore = tariffa_base_db * Decimal(self.durata_ore)
-        self.prezzo = costo_ore + Decimal(extra)
+            costo_ore = tariffa_base_db * Decimal(self.durata_ore)
+            self.prezzo = costo_ore + Decimal(extra)
 
         super().save(*args, **kwargs)
 

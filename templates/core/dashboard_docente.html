@@ -78,7 +78,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            {% for lezione in future|slice:":10" %}
+                            {% for lezione in future%}
                             <tr>
                                 <td class="ps-3">
                                     <span class="fw-bold text-primary">{{ lezione.data_inizio|date:"d/m" }}</span>
@@ -121,15 +121,14 @@
 
     <!-- Colonna Configurazioni -->
     <div class="col-lg-4">
-        <!-- Tariffa -->
         <div class="card shadow-sm mb-4">
             <div class="card-body">
-                <h6 class="fw-bold text-secondary text-uppercase small mb-3">Tariffa Base</h6>
+                <h6 class="fw-bold text-body-secondary text-uppercase small mb-3">Tariffa Base</h6>
                 <form method="post" class="d-flex">
                     {% csrf_token %}
                     <input type="hidden" name="btn_tariffa" value="1">
                     <div class="input-group">
-                        <span class="input-group-text bg-light text-secondary">€</span>
+                        <span class="input-group-text">€</span>
                         {{ form_tariffa.tariffa_base }}
                         <button class="btn btn-dark" type="submit">Salva</button>
                     </div>
@@ -137,10 +136,8 @@
             </div>
         </div>
 
-        <!-- Orari e Disponibilità (Accordion per risparmiare spazio) -->
         <div class="accordion shadow-sm" id="configAccordion">
 
-            <!-- Orari -->
             <div class="accordion-item border-0">
                 <h2 class="accordion-header">
                     <button class="accordion-button collapsed fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOrari">
@@ -148,7 +145,7 @@
                     </button>
                 </h2>
                 <div id="collapseOrari" class="accordion-collapse collapse" data-bs-parent="#configAccordion">
-                    <div class="accordion-body bg-light">
+                    <div class="accordion-body bg-body-tertiary">
                         <form method="post" class="mb-3">
                             {% csrf_token %}
                             <input type="hidden" name="btn_disponibilita" value="1">
@@ -161,7 +158,7 @@
                         </form>
                         <ul class="list-group list-group-flush small">
                             {% for d in disponibilita_list %}
-                            <li class="list-group-item bg-transparent d-flex justify-content-between align-items-center px-0">
+                            <li class="list-group-item bg-transparent text-body-secondary d-flex justify-content-between align-items-center px-0">
                                 <span><strong>{{ d.get_giorno_display }}</strong> {{ d.ora_inizio|date:"H:i" }}-{{ d.ora_fine|date:"H:i" }}</span>
                                 <a href="{% url 'elimina_disponibilita' d.id %}" class="text-danger"><i class="bi bi-trash"></i></a>
                             </li>
@@ -171,7 +168,6 @@
                 </div>
             </div>
 
-            <!-- Ferie -->
             <div class="accordion-item border-0 border-top">
                 <h2 class="accordion-header">
                     <button class="accordion-button collapsed fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFerie">
@@ -179,7 +175,7 @@
                     </button>
                 </h2>
                 <div id="collapseFerie" class="accordion-collapse collapse" data-bs-parent="#configAccordion">
-                    <div class="accordion-body bg-light">
+                    <div class="accordion-body bg-body-tertiary">
                         <form method="post" class="mb-3">
                             {% csrf_token %}
                             <input type="hidden" name="btn_chiusura" value="1">
@@ -192,9 +188,9 @@
                         </form>
                         <ul class="list-group list-group-flush small">
                             {% for c in chiusure_future %}
-                            <li class="list-group-item bg-transparent d-flex justify-content-between align-items-center px-0">
+                            <li class="list-group-item bg-transparent text-body-secondary d-flex justify-content-between align-items-center px-0">
                                 <span><span class="text-danger fw-bold">{{ c.data_inizio|date:"d/m" }}</span>: {{ c.motivo }}</span>
-                                <a href="{% url 'elimina_chiusura' c.id %}" class="text-secondary"><i class="bi bi-trash"></i></a>
+                                <a href="{% url 'elimina_chiusura' c.id %}" class="text-body-secondary"><i class="bi bi-trash"></i></a>
                             </li>
                             {% endfor %}
                         </ul>

@@ -23,7 +23,10 @@ from .utils import invia_email_custom
 
 @login_required
 def dashboard(request):
-    lezioni = Lezione.objects.filter(studente=request.user).order_by('-data_inizio')
+    lezioni = Lezione.objects.filter(studente=request.user) \
+        .select_related('studente', 'studente__profilo') \
+        .order_by('-data_inizio')
+
     da_pagare = lezioni.filter(stato='CONFERMATA', pagata=False).aggregate(Sum('prezzo'))['prezzo__sum'] or 0
 
     return render(request, 'core/dashboard.html', {
@@ -200,8 +203,15 @@ def dashboard_docente(request):
 
     # --- DATI STANDARD DASHBOARD ---
     oggi = timezone.now()
-    richieste = Lezione.objects.filter(stato='RICHIESTA').order_by('data_inizio')
-    future = Lezione.objects.filter(stato='CONFERMATA', data_inizio__gte=oggi).order_by('data_inizio')
+
+    richieste = Lezione.objects.filter(
+        stato='RICHIESTA'
+    ).select_related('studente', 'studente__profilo').order_by('data_inizio')
+
+    future = Lezione.objects.filter(
+        stato='CONFERMATA',
+        data_inizio__gte=oggi
+    ).select_related('studente', 'studente__profilo').order_by('data_inizio')
 
     inizio_mese = today = timezone.now().date().replace(day=1)
     guadagno = Lezione.objects.filter(
@@ -295,6 +305,7 @@ def gestisci_lezione(request, lezione_id, azione):
         messages.success(request, "Pagamento registrato.")
 
     return redirect('dashboard_docente')
+
 
 @staff_member_required
 def export_lezioni_csv(request):
