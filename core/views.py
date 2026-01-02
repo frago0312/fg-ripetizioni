@@ -6,7 +6,6 @@ from django.conf import settings
 from django.http import HttpResponse
 from datetime import datetime, timedelta
 from django.utils import timezone
-from django.utils.http import urlencode
 from django.contrib.admin.views.decorators import staff_member_required
 import csv
 
@@ -20,7 +19,6 @@ from .utils import invia_email_custom
 
 @login_required
 def dashboard(request):
-    # Uso select_related per evitare 100 query se ho 100 lezioni (N+1 problem)
     lezioni = Lezione.objects.filter(studente=request.user) \
         .select_related('studente', 'studente__profilo') \
         .order_by('-data_inizio')
@@ -42,7 +40,6 @@ def prenota(request):
             lezione.studente = request.user
             lezione.save()
 
-            # Avviso me stesso via mail quando qualcuno prenota
             invia_email_custom(
                 soggetto=f"Nuova Lezione: {request.user.username}",
                 destinatari=[settings.EMAIL_HOST_USER],
@@ -72,10 +69,6 @@ def registrazione(request):
 
 
 def get_orari_disponibili(request):
-    """
-    API usata da HTMX nel form di prenotazione.
-    Restituisce le <option> HTML con gli orari liberi per la data selezionata.
-    """
     data_str = request.GET.get('data')
     if not data_str:
         return HttpResponse("<option value=''>Seleziona prima una data</option>")
@@ -85,7 +78,6 @@ def get_orari_disponibili(request):
     except ValueError:
         return HttpResponse("<option value=''>Data non valida</option>")
 
-    # 1. Verifico se quel giorno sono in ferie
     chiusura = GiornoChiusura.objects.filter(
         data_inizio__lte=data_scelta,
         data_fine__gte=data_scelta
@@ -96,13 +88,11 @@ def get_orari_disponibili(request):
 
     giorno_settimana = data_scelta.weekday()
 
-    # 2. Controllo la mia disponibilità base per quel giorno della settimana
     try:
         disp = Disponibilita.objects.get(giorno=giorno_settimana)
     except Disponibilita.DoesNotExist:
         return HttpResponse("<option value=''>Nessuna lezione in questo giorno</option>")
 
-    # 3. Genero tutti gli slot possibili ogni 30 minuti
     orari_possibili = []
     ora_corrente = datetime.combine(data_scelta, disp.ora_inizio)
     ora_fine = datetime.combine(data_scelta, disp.ora_fine)
@@ -111,7 +101,6 @@ def get_orari_disponibili(request):
         orari_possibili.append(ora_corrente)
         ora_corrente += timedelta(minutes=30)
 
-    # 4. Recupero le lezioni già fissate per escludere gli slot occupati
     lezioni_giorno = Lezione.objects.filter(
         data_inizio__date=data_scelta,
         stato__in=['RICHIESTA', 'CONFERMATA']
@@ -122,7 +111,6 @@ def get_orari_disponibili(request):
         occupato = False
         inizio_slot = timezone.make_aware(orario)
 
-        # Logica sovrapposizione: verifico se lo slot corrente cade dentro una lezione esistente
         for lezione in lezioni_giorno:
             lezione_inizio = lezione.data_inizio
             durata = float(lezione.durata_ore) if lezione.durata_ore else 1.0
@@ -144,7 +132,6 @@ def get_orari_disponibili(request):
 
 @login_required
 def profilo_view(request):
-    # Uso get_or_create logic ma manuale per gestire meglio i try/except
     try:
         profilo = request.user.profilo
     except Profilo.DoesNotExist:
@@ -166,7 +153,6 @@ def profilo_view(request):
 def dashboard_docente(request):
     config_obj = Impostazioni.objects.first()
 
-    # --- CAMBIO TARIFFA ---
     if request.method == 'POST' and 'btn_tariffa' in request.POST:
         form_tariffa = ImpostazioniForm(request.POST, instance=config_obj)
         if form_tariffa.is_valid():
@@ -176,7 +162,6 @@ def dashboard_docente(request):
     else:
         form_tariffa = ImpostazioniForm(instance=config_obj)
 
-    # --- GESTIONE FERIE ---
     if request.method == 'POST' and 'btn_chiusura' in request.POST:
         form_chiusura = ChiusuraForm(request.POST)
         if form_chiusura.is_valid():
@@ -186,12 +171,10 @@ def dashboard_docente(request):
     else:
         form_chiusura = ChiusuraForm()
 
-    # --- ORARI SETTIMANALI ---
     if request.method == 'POST' and 'btn_disponibilita' in request.POST:
         form_disp = DisponibilitaForm(request.POST)
         if form_disp.is_valid():
             giorno = form_disp.cleaned_data['giorno']
-            # Update_or_create è perfetto qui: se c'è già un orario per quel giorno, lo sovrascrive
             Disponibilita.objects.update_or_create(
                 giorno=giorno,
                 defaults={
@@ -204,10 +187,8 @@ def dashboard_docente(request):
     else:
         form_disp = DisponibilitaForm()
 
-    # --- CARICAMENTO DATI ---
     oggi = timezone.now()
 
-    # Query ottimizzate con select_related per la dashboard
     richieste = Lezione.objects.filter(stato='RICHIESTA') \
         .select_related('studente', 'studente__profilo') \
         .order_by('data_inizio')
@@ -262,19 +243,8 @@ def gestisci_lezione(request, lezione_id, azione):
         lezione.stato = 'CONFERMATA'
         lezione.save()
 
-        # Genero link per Google Calendar
-        inizio = lezione.data_inizio
-        fine = inizio + timedelta(hours=float(lezione.durata_ore))
-        fmt = "%Y%m%dT%H%M%S"
-        params = {
-            'action': 'TEMPLATE',
-            'text': f"Ripetizioni FG ({lezione.studente.first_name})",
-            'dates': f"{inizio.strftime(fmt)}/{fine.strftime(fmt)}",
-            'details': f"Note: {lezione.note}",
-            'location': lezione.get_luogo_display(),
-        }
-        link_calendar = f"https://calendar.google.com/calendar/render?{urlencode(params)}"
-
+        # ORA È MOLTO PIÙ PULITO:
+        # Richiamo il metodo del modello invece di calcolare il link qui
         if lezione.studente.email:
             invia_email_custom(
                 soggetto='✅ Lezione Confermata',
@@ -282,7 +252,7 @@ def gestisci_lezione(request, lezione_id, azione):
                 template_name='conferma_lezione.html',
                 context={
                     'lezione': lezione,
-                    'link_calendar': link_calendar
+                    'link_calendar': lezione.get_google_calendar_url() # Metodo nuovo
                 }
             )
         messages.success(request, "Lezione confermata e mail inviata!")

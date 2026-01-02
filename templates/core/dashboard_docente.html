@@ -78,8 +78,18 @@
                             {% for lezione in future %}
                             <tr>
                                 <td class="ps-3">
-                                    <span class="fw-bold text-primary">{{ lezione.data_inizio|date:"d/m" }}</span>
-                                    <span class="ms-1 text-muted">{{ lezione.data_inizio|date:"H:i" }}</span>
+                                    <div class="d-flex align-items-center">
+                                        <div>
+                                            <span class="fw-bold text-primary">{{ lezione.data_inizio|date:"d/m" }}</span>
+                                            <span class="ms-1 text-muted">{{ lezione.data_inizio|date:"H:i" }}</span>
+                                        </div>
+
+                                        <a href="{{ lezione.get_google_calendar_url }}" target="_blank"
+                                           class="btn btn-sm btn-light border ms-2 text-primary"
+                                           title="Aggiungi al mio calendario">
+                                            <i class="bi bi-calendar-plus"></i>
+                                        </a>
+                                    </div>
                                 </td>
                                 <td>
                                     {{ lezione.studente.first_name }} {{ lezione.studente.last_name|slice:":1" }}.
