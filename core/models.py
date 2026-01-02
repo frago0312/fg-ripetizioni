@@ -5,6 +5,7 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.utils.http import urlencode
 from datetime import timedelta
+from django.utils import timezone
 
 class Impostazioni(models.Model):
     tariffa_base = models.DecimalField(max_digits=5, decimal_places=2, default=10.00, help_text="Prezzo all'ora base")
@@ -82,20 +83,22 @@ class Lezione(models.Model):
 
     def get_google_calendar_url(self):
         """Genera il link per aggiungere l'evento a Google Calendar"""
-        inizio = self.data_inizio
-        # Se non c'è durata, default 1 ora
+
+        inizio_locale = timezone.localtime(self.data_inizio)
+
         durata = float(self.durata_ore) if self.durata_ore else 1.0
-        fine = inizio + timedelta(hours=durata)
+        fine_locale = inizio_locale + timedelta(hours=durata)
 
         fmt = "%Y%m%dT%H%M%S"
 
         params = {
             'action': 'TEMPLATE',
             'text': f"Ripetizioni FG: {self.studente.first_name} {self.studente.last_name}",
-            'dates': f"{inizio.strftime(fmt)}/{fine.strftime(fmt)}",
+            'dates': f"{inizio_locale.strftime(fmt)}/{fine_locale.strftime(fmt)}",
             'details': f"Note: {self.note or 'Nessuna nota'}",
             'location': self.get_luogo_display(),
             'sprop': 'website:https://francescogori03.eu.pythonanywhere.com',
+            'ctz': 'Europe/Rome',
         }
 
         return f"https://calendar.google.com/calendar/render?{urlencode(params)}"
