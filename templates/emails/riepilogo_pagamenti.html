@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: sans-serif; color: #333; line-height: 1.6; }
+        .box { border: 1px solid #ddd; padding: 15px; border-radius: 8px; background-color: #f9f9f9; }
+        .total { font-size: 1.2em; color: #d9534f; font-weight: bold; }
+        ul { padding-left: 20px; }
+    </style>
+</head>
+<body>
+    <h3>Ciao {{ studente.first_name }},</h3>
+    <p>Ecco un riepilogo delle lezioni ancora da saldare.</p>
+    
+    <div class="box">
+        <ul>
+            {% for lezione in lezioni %}
+            <li>
+                <strong>{{ lezione.data_inizio|date:"l d/m" }}</strong> 
+                ({{ lezione.durata_ore }}h) - 
+                € {{ lezione.prezzo }}
+            </li>
+            {% endfor %}
+        </ul>
+        <hr>
+        <p>Totale da saldare: <span class="total">€ {{ totale }}</span></p>
+    </div>
+
+    <p>Fammi sapere quando riesci a saldare. Grazie!</p>
+    <p><em>Francesco</em></p>
+</body>
+</html>

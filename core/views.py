@@ -1,12 +1,13 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from django.db.models import Sum
+from django.db.models import Sum, Count
 from django.contrib import messages
 from django.conf import settings
 from django.http import HttpResponse
 from datetime import datetime, timedelta
 from django.utils import timezone
 from django.contrib.admin.views.decorators import staff_member_required
+from django.contrib.auth.models import User
 import csv
 
 from .forms import (
@@ -153,6 +154,7 @@ def profilo_view(request):
 def dashboard_docente(request):
     config_obj = Impostazioni.objects.first()
 
+    # --- GESTIONE FORM TARIFFA ---
     if request.method == 'POST' and 'btn_tariffa' in request.POST:
         form_tariffa = ImpostazioniForm(request.POST, instance=config_obj)
         if form_tariffa.is_valid():
@@ -162,6 +164,7 @@ def dashboard_docente(request):
     else:
         form_tariffa = ImpostazioniForm(instance=config_obj)
 
+    # --- GESTIONE FORM FERIE ---
     if request.method == 'POST' and 'btn_chiusura' in request.POST:
         form_chiusura = ChiusuraForm(request.POST)
         if form_chiusura.is_valid():
@@ -171,6 +174,7 @@ def dashboard_docente(request):
     else:
         form_chiusura = ChiusuraForm()
 
+    # --- GESTIONE FORM DISPONIBILITÀ ---
     if request.method == 'POST' and 'btn_disponibilita' in request.POST:
         form_disp = DisponibilitaForm(request.POST)
         if form_disp.is_valid():
@@ -187,6 +191,7 @@ def dashboard_docente(request):
     else:
         form_disp = DisponibilitaForm()
 
+    # --- CARICAMENTO DATI ---
     oggi = timezone.now()
 
     richieste = Lezione.objects.filter(stato='RICHIESTA') \
@@ -207,6 +212,34 @@ def dashboard_docente(request):
     chiusure_future = GiornoChiusura.objects.filter(data_fine__gte=oggi.date()).order_by('data_inizio')
     disponibilita_list = Disponibilita.objects.all().order_by('giorno')
 
+    # --- LOGICA DI RAGGRUPPAMENTO PAGAMENTI ---
+    # 1. Prendo gli ID univoci degli studenti che devono pagare
+    studenti_debitori_ids = Lezione.objects.filter(
+        stato='CONFERMATA', pagata=False
+    ).values_list('studente', flat=True).distinct()
+
+    lista_pagamenti = []
+
+    # 2. Per ogni studente, calcolo il totale
+    for s_id in studenti_debitori_ids:
+        studente = User.objects.get(id=s_id)
+
+        # Recupero le lezioni specifiche non pagate
+        lezioni_da_pagare = Lezione.objects.filter(
+            studente=studente,
+            stato='CONFERMATA',
+            pagata=False
+        )
+
+        totale_s = lezioni_da_pagare.aggregate(Sum('prezzo'))['prezzo__sum'] or 0
+        conta_s = lezioni_da_pagare.count()
+
+        lista_pagamenti.append({
+            'studente': studente,
+            'numero_lezioni': conta_s,
+            'totale': totale_s
+        })
+
     return render(request, 'core/dashboard_docente.html', {
         'richieste': richieste,
         'future': future,
@@ -216,12 +249,13 @@ def dashboard_docente(request):
         'form_disp': form_disp,
         'disponibilita_list': disponibilita_list,
         'form_tariffa': form_tariffa,
+        'lista_pagamenti': lista_pagamenti,
     })
 
 
 @staff_member_required
 def elimina_disponibilita(request, disp_id):
-    disp = Disponibilita.objects.get(id=disp_id)
+    disp = get_object_or_404(Disponibilita, id=disp_id)
     disp.delete()
     messages.success(request, "Orario rimosso dalla settimana.")
     return redirect('dashboard_docente')
@@ -229,7 +263,7 @@ def elimina_disponibilita(request, disp_id):
 
 @staff_member_required
 def elimina_chiusura(request, chiusura_id):
-    chiusura = GiornoChiusura.objects.get(id=chiusura_id)
+    chiusura = get_object_or_404(GiornoChiusura, id=chiusura_id)
     chiusura.delete()
     messages.success(request, "Riapertura effettuata (chiusura cancellata).")
     return redirect('dashboard_docente')
@@ -237,14 +271,12 @@ def elimina_chiusura(request, chiusura_id):
 
 @staff_member_required
 def gestisci_lezione(request, lezione_id, azione):
-    lezione = Lezione.objects.get(id=lezione_id)
+    lezione = get_object_or_404(Lezione, id=lezione_id)
 
     if azione == 'accetta':
         lezione.stato = 'CONFERMATA'
         lezione.save()
 
-        # ORA È MOLTO PIÙ PULITO:
-        # Richiamo il metodo del modello invece di calcolare il link qui
         if lezione.studente.email:
             invia_email_custom(
                 soggetto='✅ Lezione Confermata',
@@ -252,7 +284,7 @@ def gestisci_lezione(request, lezione_id, azione):
                 template_name='conferma_lezione.html',
                 context={
                     'lezione': lezione,
-                    'link_calendar': lezione.get_google_calendar_url() # Metodo nuovo
+                    'link_calendar': lezione.get_google_calendar_url()
                 }
             )
         messages.success(request, "Lezione confermata e mail inviata!")
@@ -271,6 +303,7 @@ def gestisci_lezione(request, lezione_id, azione):
         messages.warning(request, "Lezione rifiutata.")
 
     elif azione == 'pagata':
+        # Questo gestisce il pagamento di una SINGOLA lezione (dal calendario)
         lezione.pagata = True
         lezione.save()
         messages.success(request, "Pagamento registrato.")
@@ -314,3 +347,47 @@ def export_lezioni_csv(request):
         ])
 
     return response
+
+
+# --- NUOVA FUNZIONE PER I PAGAMENTI RAGGRUPPATI ---
+@staff_member_required
+def gestione_pagamenti(request, studente_id, azione):
+    studente = get_object_or_404(User, id=studente_id)
+
+    # Recuperiamo tutte le lezioni CONFERMATE ma NON PAGATE di questo studente
+    lezioni_da_pagare = Lezione.objects.filter(
+        studente=studente,
+        stato='CONFERMATA',
+        pagata=False
+    ).order_by('data_inizio')
+
+    if not lezioni_da_pagare:
+        messages.warning(request, f"Nessuna lezione da pagare per {studente.first_name}.")
+        return redirect('dashboard_docente')
+
+    # Calcolo il totale
+    totale = lezioni_da_pagare.aggregate(Sum('prezzo'))['prezzo__sum'] or 0
+
+    if azione == 'invia_riepilogo':
+        if studente.email:
+            invia_email_custom(
+                soggetto=f'Riepilogo Lezioni da Saldare - {studente.first_name}',
+                destinatari=[studente.email],
+                template_name='riepilogo_pagamenti.html',  # Assicurati di creare questo file
+                context={
+                    'lezioni': lezioni_da_pagare,
+                    'totale': totale,
+                    'studente': studente
+                }
+            )
+            messages.success(request, f"Riepilogo inviato a {studente.email} con totale € {totale}!")
+        else:
+            messages.error(request, "Lo studente non ha un'email salvata.")
+
+    elif azione == 'segna_pagato':
+        # Aggiorna tutte le lezioni in una volta sola
+        numero_lezioni = lezioni_da_pagare.update(pagata=True)
+        messages.success(request,
+                         f"Segnate come pagate {numero_lezioni} lezioni per {studente.first_name}. Incasso di € {totale} registrato!")
+
+    return redirect('dashboard_docente')

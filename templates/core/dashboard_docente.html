@@ -11,11 +11,55 @@
             <div class="me-3 fs-4"><i class="bi bi-cash-stack"></i></div>
             <div class="lh-1">
                 <span class="d-block small opacity-75">Incasso Mese</span>
-                <span class="fw-bold fs-5">€ {{ guadagno }}</span>
+                <span class="fw-bold fs-5">€ {{ guadagno|floatformat:2 }}</span>
             </div>
         </div>
     </div>
 </div>
+
+{% if lista_pagamenti %}
+<div class="card border-primary border-2 shadow mb-4">
+    <div class="card-header bg-primary-subtle text-primary-emphasis fw-bold d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-wallet2 me-2"></i> Pagamenti in Sospeso</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="bg-body-secondary text-secondary small">
+                <tr>
+                    <th class="ps-3">Studente</th>
+                    <th>Lezioni da saldare</th>
+                    <th>Totale</th>
+                    <th class="text-end pe-3">Azioni</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in lista_pagamenti %}
+                <tr>
+                    <td class="ps-3 fw-bold">{{ item.studente.first_name }} {{ item.studente.last_name }}</td>
+                    <td><span class="badge bg-secondary">{{ item.numero_lezioni }} lezioni</span></td>
+                    <td class="fw-bold text-danger">€ {{ item.totale|floatformat:2 }}</td>
+                    <td class="text-end pe-3">
+                        <div class="btn-group" role="group">
+                            <a href="{% url 'gestione_pagamenti' item.studente.id 'invia_riepilogo' %}"
+                               class="btn btn-outline-primary btn-sm"
+                               onclick="return confirm('Inviare il riepilogo totale (€ {{ item.totale }}) via mail a {{ item.studente.first_name }}?')">
+                                <i class="bi bi-envelope-at"></i> Mail
+                            </a>
+
+                            <a href="{% url 'gestione_pagamenti' item.studente.id 'segna_pagato' %}"
+                               class="btn btn-success btn-sm"
+                               onclick="return confirm('Confermi che {{ item.studente.first_name }} ha saldato tutto (€ {{ item.totale }})?')">
+                                <i class="bi bi-check-circle"></i> Saldato
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
 
 {% if richieste %}
 <div class="card border-warning border-2 shadow mb-4">
@@ -97,7 +141,7 @@
                                         <i class="bi bi-whatsapp"></i>
                                     </a>
                                 </td>
-                                <td>€{{ lezione.prezzo }}</td>
+                                <td>€{{ lezione.prezzo|floatformat:2 }}</td>
                                 <td class="text-end pe-3">
                                     {% if lezione.pagata %}
                                         <span class="badge bg-success-subtle text-success"><i class="bi bi-check-all"></i> Pagata</span>

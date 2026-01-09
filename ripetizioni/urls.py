@@ -25,4 +25,4 @@ urlpatterns = [
     path('gestisci-lezione/<int:lezione_id>/<str:azione>/', views.gestisci_lezione, name='gestisci_lezione'),
     path('elimina-chiusura/<int:chiusura_id>/', views.elimina_chiusura, name='elimina_chiusura'),
     path('elimina-disponibilita/<int:disp_id>/', views.elimina_disponibilita, name='elimina_disponibilita'),
-]
+    path('gestione-pagamenti/<int:studente_id>/<str:azione>/', views.gestione_pagamenti, name='gestione_pagamenti'),]
