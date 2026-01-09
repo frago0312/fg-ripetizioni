@@ -151,10 +151,11 @@ def profilo_view(request):
 
 
 @staff_member_required
+@staff_member_required
 def dashboard_docente(request):
     config_obj = Impostazioni.objects.first()
 
-    # --- GESTIONE FORM TARIFFA ---
+    # --- (FORMS HANDLING: Tariffa, Ferie, Disponibilita - Keep existing code) ---
     if request.method == 'POST' and 'btn_tariffa' in request.POST:
         form_tariffa = ImpostazioniForm(request.POST, instance=config_obj)
         if form_tariffa.is_valid():
@@ -164,7 +165,6 @@ def dashboard_docente(request):
     else:
         form_tariffa = ImpostazioniForm(instance=config_obj)
 
-    # --- GESTIONE FORM FERIE ---
     if request.method == 'POST' and 'btn_chiusura' in request.POST:
         form_chiusura = ChiusuraForm(request.POST)
         if form_chiusura.is_valid():
@@ -174,7 +174,6 @@ def dashboard_docente(request):
     else:
         form_chiusura = ChiusuraForm()
 
-    # --- GESTIONE FORM DISPONIBILITÀ ---
     if request.method == 'POST' and 'btn_disponibilita' in request.POST:
         form_disp = DisponibilitaForm(request.POST)
         if form_disp.is_valid():
@@ -191,7 +190,7 @@ def dashboard_docente(request):
     else:
         form_disp = DisponibilitaForm()
 
-    # --- CARICAMENTO DATI ---
+    # --- DATA LOADING ---
     oggi = timezone.now()
 
     richieste = Lezione.objects.filter(stato='RICHIESTA') \
@@ -212,25 +211,26 @@ def dashboard_docente(request):
     chiusure_future = GiornoChiusura.objects.filter(data_fine__gte=oggi.date()).order_by('data_inizio')
     disponibilita_list = Disponibilita.objects.all().order_by('giorno')
 
-    # --- LOGICA DI RAGGRUPPAMENTO PAGAMENTI ---
-    # 1. Prendo gli ID univoci degli studenti che devono pagare
+    # --- FIXED GROUPING LOGIC ---
+    # The .order_by() is crucial here to remove the default model ordering (by date)
+    # causing the duplicates.
     studenti_debitori_ids = Lezione.objects.filter(
         stato='CONFERMATA', pagata=False
-    ).values_list('studente', flat=True).distinct()
+    ).order_by().values_list('studente', flat=True).distinct()
 
     lista_pagamenti = []
 
-    # 2. Per ogni studente, calcolo il totale
     for s_id in studenti_debitori_ids:
         studente = User.objects.get(id=s_id)
 
-        # Recupero le lezioni specifiche non pagate
+        # Get specific unpaid lessons for this student
         lezioni_da_pagare = Lezione.objects.filter(
             studente=studente,
             stato='CONFERMATA',
             pagata=False
         )
 
+        # Calculate totals
         totale_s = lezioni_da_pagare.aggregate(Sum('prezzo'))['prezzo__sum'] or 0
         conta_s = lezioni_da_pagare.count()
 
@@ -251,7 +251,6 @@ def dashboard_docente(request):
         'form_tariffa': form_tariffa,
         'lista_pagamenti': lista_pagamenti,
     })
-
 
 @staff_member_required
 def elimina_disponibilita(request, disp_id):
