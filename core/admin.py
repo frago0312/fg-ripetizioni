@@ -29,9 +29,14 @@ class GiornoChiusuraAdmin(admin.ModelAdmin):
 
 @admin.register(Lezione)
 class LezioneAdmin(admin.ModelAdmin):
-    list_display = ('studente', 'data_inizio', 'luogo', 'prezzo', 'stato', 'pagata')
+    list_display = ('id', 'studente', 'data_inizio', 'luogo', 'prezzo', 'stato', 'pagata')
+
+    list_display_links = ('id', 'data_inizio')
+
     list_filter = ('stato', 'pagata', 'data_inizio')
-    list_editable = ('stato', 'pagata')  # Comodo per modifiche rapide dalla lista
+
+    list_editable = ('studente', 'stato', 'pagata')
+
     search_fields = ('studente__username', 'studente__first_name', 'studente__last_name')
 
     def save_model(self, request, obj, form, change):
