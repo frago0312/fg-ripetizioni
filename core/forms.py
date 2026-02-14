@@ -15,6 +15,13 @@ class RegistrazioneForm(UserCreationForm):
     class Meta:
         model = User
         fields = ['username', 'email', 'first_name', 'last_name']
+        # HO AGGIUNTO QUESTO BLOCCO WIDGETS PER ALLINEARE LO STILE ANCHE NELLA REGISTRAZIONE
+        widgets = {
+            'username': forms.TextInput(attrs={'class': 'form-control'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control'}),
+            'first_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'last_name': forms.TextInput(attrs={'class': 'form-control'}),
+        }
 
 
 class PrenotazioneForm(forms.ModelForm):
@@ -43,13 +50,12 @@ class PrenotazioneForm(forms.ModelForm):
         widgets = {
             'durata_ore': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.5', 'min': '0.5', 'max': '4'}),
             'luogo': forms.Select(attrs={'class': 'form-select'}),
-            'note': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+            'note': forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'Argomenti o note...'}),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Fix per Django: se non popolo le choices nel POST, la validazione fallisce
-        # perché il valore scelto non esiste nella lista vuota iniziale.
         if 'data' in self.data and 'ora' in self.data:
             self.fields['ora'].choices = [(self.data['ora'], self.data['ora'])]
 
@@ -71,7 +77,7 @@ class PrenotazioneForm(forms.ModelForm):
             except Disponibilita.DoesNotExist:
                 raise forms.ValidationError("In questo giorno non faccio lezione (controlla Admin).")
 
-            # 2. Controllo range orario (es. non sforare dopo le 20:00)
+            # 2. Controllo range orario
             ora_inizio_disp = timezone.make_aware(datetime.datetime.combine(data_scelta, disp.ora_inizio))
             ora_fine_disp = timezone.make_aware(datetime.datetime.combine(data_scelta, disp.ora_fine))
 
@@ -81,11 +87,10 @@ class PrenotazioneForm(forms.ModelForm):
                 raise forms.ValidationError(f"Orario fuori disponibilità ({disp.ora_inizio} - {disp.ora_fine})")
 
             # 3. Controllo incroci (Overlap)
-            # Cerco lezioni che finiscono DOPO il mio inizio e iniziano PRIMA della mia fine
             conflitti = Lezione.objects.filter(
                 stato__in=['RICHIESTA', 'CONFERMATA'],
                 data_inizio__lt=fine_richiesta,
-            )
+            ).exclude(pk=self.instance.pk if self.instance else None)
 
             for lezione in conflitti:
                 fine_lezione = lezione.data_inizio + timedelta(hours=float(lezione.durata_ore))
