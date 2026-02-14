@@ -17,7 +17,8 @@ class DisponibilitaAdmin(admin.ModelAdmin):
 
 @admin.register(Profilo)
 class ProfiloAdmin(admin.ModelAdmin):
-    list_display = ('user', 'telefono', 'scuola')
+    list_display = ('user', 'tariffa_specifica', 'telefono', 'scuola')
+    list_editable = ('tariffa_specifica',)
     search_fields = ('user__username', 'user__first_name', 'user__last_name', 'telefono')
 
 

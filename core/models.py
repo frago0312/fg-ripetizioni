@@ -62,11 +62,18 @@ class Lezione(models.Model):
     note = models.TextField(blank=True, null=True)
 
     def save(self, *args, **kwargs):
-        # Snapshot del prezzo: calcolo il costo solo alla creazione (o se manca).
-        # In questo modo, se alzo la tariffa in futuro, le vecchie lezioni restano invariate.
         if self.pk is None or self.prezzo is None:
-            config = Impostazioni.objects.first()
-            tariffa_base_db = config.tariffa_base if config else Decimal(10.00)
+
+            tariffa_base_calcolo = None
+            try:
+                if self.studente.profilo.tariffa_specifica:
+                    tariffa_base_calcolo = self.studente.profilo.tariffa_specifica
+            except:
+                pass
+
+            if tariffa_base_calcolo is None:
+                config = Impostazioni.objects.first()
+                tariffa_base_calcolo = config.tariffa_base if config else Decimal(10.00)
 
             extra = 0
             if self.luogo == 'RUFINA':
@@ -76,7 +83,7 @@ class Lezione(models.Model):
             elif self.luogo == 'FASCIA_30':
                 extra = 8.00
 
-            costo_ore = tariffa_base_db * Decimal(self.durata_ore)
+            costo_ore = tariffa_base_calcolo * Decimal(self.durata_ore)
             self.prezzo = costo_ore + Decimal(extra)
 
         super().save(*args, **kwargs)
@@ -126,11 +133,17 @@ class Disponibilita(models.Model):
         verbose_name_plural = "Disponibilità"
         ordering = ['giorno']
 
+
 class Profilo(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profilo')
     telefono = models.CharField(max_length=20, blank=True, null=True, help_text="Utile per urgenze (WhatsApp)")
     indirizzo = models.CharField(max_length=255, blank=True, null=True, help_text="Indirizzo completo (se vengo io da te)")
     scuola = models.CharField(max_length=100, blank=True, null=True, help_text="Es. Liceo Scientifico, 4° Anno")
+
+    tariffa_specifica = models.DecimalField(
+        max_digits=5, decimal_places=2, blank=True, null=True,
+        help_text="Se impostata, questa tariffa vince su quella globale."
+    )
 
     def __str__(self):
         return f"Profilo di {self.user.username}"
