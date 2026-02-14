@@ -15,7 +15,6 @@ class RegistrazioneForm(UserCreationForm):
     class Meta:
         model = User
         fields = ['username', 'email', 'first_name', 'last_name']
-        # HO AGGIUNTO QUESTO BLOCCO WIDGETS PER ALLINEARE LO STILE ANCHE NELLA REGISTRAZIONE
         widgets = {
             'username': forms.TextInput(attrs={'class': 'form-control'}),
             'email': forms.EmailInput(attrs={'class': 'form-control'}),
@@ -70,7 +69,7 @@ class PrenotazioneForm(forms.ModelForm):
             inizio_richiesto = datetime.datetime.strptime(orario_str, "%Y-%m-%d %H:%M")
             inizio_richiesto = timezone.make_aware(inizio_richiesto)
 
-            # 1. Controllo se quel giorno della settimana lavoro
+            # 1. Controllo disponibilità giorno
             giorno_sett = inizio_richiesto.weekday()
             try:
                 disp = Disponibilita.objects.get(giorno=giorno_sett)
@@ -80,13 +79,12 @@ class PrenotazioneForm(forms.ModelForm):
             # 2. Controllo range orario
             ora_inizio_disp = timezone.make_aware(datetime.datetime.combine(data_scelta, disp.ora_inizio))
             ora_fine_disp = timezone.make_aware(datetime.datetime.combine(data_scelta, disp.ora_fine))
-
             fine_richiesta = inizio_richiesto + timedelta(hours=float(durata))
 
             if inizio_richiesto < ora_inizio_disp or fine_richiesta > ora_fine_disp:
-                raise forms.ValidationError(f"Orario fuori disponibilità ({disp.ora_inizio} - {disp.ora_fine})")
+                raise forms.ValidationError(f"Orario fuori disponibilità ({disp.ora_inizio.strftime('%H:%M')} - {disp.ora_fine.strftime('%H:%M')})")
 
-            # 3. Controllo incroci (Overlap)
+            # 3. Controllo sovrapposizioni
             conflitti = Lezione.objects.filter(
                 stato__in=['RICHIESTA', 'CONFERMATA'],
                 data_inizio__lt=fine_richiesta,
