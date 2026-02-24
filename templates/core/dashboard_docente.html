@@ -197,9 +197,14 @@
             </div>
 
             <div class="card-body p-0">
-                <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                {% if filtro_studente or filtro_dal or filtro_al %}
+                    <div class="table-responsive">
+                {% else %}
+                    <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                {% endif %}
+
                     <table class="table table-hover align-middle mb-0">
-                        <thead class="bg-body-secondary text-body-secondary small" style="position: sticky; top: 0; z-index: 1;">
+                        <thead class="bg-body-secondary text-body-secondary small" {% if not filtro_studente and not filtro_dal and not filtro_al %}style="position: sticky; top: 0; z-index: 1;"{% endif %}>
                             <tr>
                                 <th class="ps-3">Data</th>
                                 <th>Studente</th>
