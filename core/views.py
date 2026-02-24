@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from django.db.models import Sum, Count
+from django.db.models import Sum
 from django.contrib import messages
 from django.conf import settings
 from django.http import HttpResponse
@@ -151,11 +151,10 @@ def profilo_view(request):
 
 
 @staff_member_required
-@staff_member_required
 def dashboard_docente(request):
     config_obj = Impostazioni.objects.first()
 
-    # --- (FORMS HANDLING: Tariffa, Ferie, Disponibilita - Keep existing code) ---
+    # --- GESTIONE FORMS ---
     if request.method == 'POST' and 'btn_tariffa' in request.POST:
         form_tariffa = ImpostazioniForm(request.POST, instance=config_obj)
         if form_tariffa.is_valid():
@@ -190,7 +189,7 @@ def dashboard_docente(request):
     else:
         form_disp = DisponibilitaForm()
 
-    # --- DATA LOADING ---
+    # --- CARICAMENTO DATI BASE ---
     oggi = timezone.now()
 
     richieste = Lezione.objects.filter(stato='RICHIESTA') \
@@ -211,26 +210,15 @@ def dashboard_docente(request):
     chiusure_future = GiornoChiusura.objects.filter(data_fine__gte=oggi.date()).order_by('data_inizio')
     disponibilita_list = Disponibilita.objects.all().order_by('giorno')
 
-    # --- FIXED GROUPING LOGIC ---
-    # The .order_by() is crucial here to remove the default model ordering (by date)
-    # causing the duplicates.
+    # --- PAGAMENTI IN SOSPESO RAGGRUPPATI ---
     studenti_debitori_ids = Lezione.objects.filter(
         stato='CONFERMATA', pagata=False
     ).order_by().values_list('studente', flat=True).distinct()
 
     lista_pagamenti = []
-
     for s_id in studenti_debitori_ids:
         studente = User.objects.get(id=s_id)
-
-        # Get specific unpaid lessons for this student
-        lezioni_da_pagare = Lezione.objects.filter(
-            studente=studente,
-            stato='CONFERMATA',
-            pagata=False
-        )
-
-        # Calculate totals
+        lezioni_da_pagare = Lezione.objects.filter(studente=studente, stato='CONFERMATA', pagata=False)
         totale_s = lezioni_da_pagare.aggregate(Sum('prezzo'))['prezzo__sum'] or 0
         conta_s = lezioni_da_pagare.count()
 
@@ -239,6 +227,34 @@ def dashboard_docente(request):
             'numero_lezioni': conta_s,
             'totale': totale_s
         })
+
+    # --- STORICO LEZIONI PASSATE E FILTRI ---
+    # Recupero i parametri dall'URL (se ci sono)
+    filtro_studente = request.GET.get('studente')
+    filtro_dal = request.GET.get('dal')
+    filtro_al = request.GET.get('al')
+
+    # Prendo tutte le lezioni passate confermate
+    passate = Lezione.objects.filter(stato='CONFERMATA', data_inizio__lt=oggi).select_related('studente').order_by(
+        '-data_inizio')
+
+    # Applico i filtri se l'utente li ha selezionati
+    if filtro_studente:
+        passate = passate.filter(studente_id=filtro_studente)
+    if filtro_dal:
+        passate = passate.filter(data_inizio__date__gte=filtro_dal)
+    if filtro_al:
+        passate = passate.filter(data_inizio__date__lte=filtro_al)
+
+    # Calcolo i totali della query filtrata
+    totale_ore_passate = passate.aggregate(Sum('durata_ore'))['durata_ore__sum'] or 0
+    totale_importo_passate = passate.aggregate(Sum('prezzo'))['prezzo__sum'] or 0
+
+    # Lista studenti per il menu a tendina (solo chi ha almeno una lezione passata)
+    studenti_con_lezioni = User.objects.filter(
+        lezioni__stato='CONFERMATA',
+        lezioni__data_inizio__lt=oggi
+    ).distinct().order_by('first_name')
 
     return render(request, 'core/dashboard_docente.html', {
         'richieste': richieste,
@@ -250,7 +266,17 @@ def dashboard_docente(request):
         'disponibilita_list': disponibilita_list,
         'form_tariffa': form_tariffa,
         'lista_pagamenti': lista_pagamenti,
+
+        # Variabili per lo storico
+        'passate': passate,
+        'totale_ore_passate': totale_ore_passate,
+        'totale_importo_passate': totale_importo_passate,
+        'studenti_con_lezioni': studenti_con_lezioni,
+        'filtro_studente': filtro_studente,
+        'filtro_dal': filtro_dal,
+        'filtro_al': filtro_al,
     })
+
 
 @staff_member_required
 def elimina_disponibilita(request, disp_id):
@@ -302,7 +328,6 @@ def gestisci_lezione(request, lezione_id, azione):
         messages.warning(request, "Lezione rifiutata.")
 
     elif azione == 'pagata':
-        # Questo gestisce il pagamento di una SINGOLA lezione (dal calendario)
         lezione.pagata = True
         lezione.save()
         messages.success(request, "Pagamento registrato.")
@@ -311,49 +336,9 @@ def gestisci_lezione(request, lezione_id, azione):
 
 
 @staff_member_required
-def export_lezioni_csv(request):
-    data_dal = request.GET.get('dal')
-    data_al = request.GET.get('al')
-
-    response = HttpResponse(content_type='text/csv')
-    filename = "lezioni_export"
-    if data_dal: filename += f"_dal_{data_dal}"
-    if data_al: filename += f"_al_{data_al}"
-    response['Content-Disposition'] = f'attachment; filename="{filename}.csv"'
-
-    writer = csv.writer(response)
-    writer.writerow(['Data', 'Ora', 'Studente', 'Durata', 'Prezzo', 'Stato', 'Pagata', 'Note'])
-
-    lezioni = Lezione.objects.filter(stato='CONFERMATA')
-
-    if data_dal:
-        lezioni = lezioni.filter(data_inizio__date__gte=data_dal)
-    if data_al:
-        lezioni = lezioni.filter(data_inizio__date__lte=data_al)
-
-    lezioni = lezioni.order_by('-data_inizio')
-
-    for lezione in lezioni:
-        writer.writerow([
-            lezione.data_inizio.strftime("%d/%m/%Y"),
-            lezione.data_inizio.strftime("%H:%M"),
-            f"{lezione.studente.first_name} {lezione.studente.last_name}",
-            str(lezione.durata_ore).replace('.', ','),
-            f"{lezione.prezzo}".replace('.', ','),
-            lezione.get_stato_display(),
-            "SI" if lezione.pagata else "NO",
-            lezione.note or ""
-        ])
-
-    return response
-
-
-# --- NUOVA FUNZIONE PER I PAGAMENTI RAGGRUPPATI ---
-@staff_member_required
 def gestione_pagamenti(request, studente_id, azione):
     studente = get_object_or_404(User, id=studente_id)
 
-    # Recuperiamo tutte le lezioni CONFERMATE ma NON PAGATE di questo studente
     lezioni_da_pagare = Lezione.objects.filter(
         studente=studente,
         stato='CONFERMATA',
@@ -364,7 +349,6 @@ def gestione_pagamenti(request, studente_id, azione):
         messages.warning(request, f"Nessuna lezione da pagare per {studente.first_name}.")
         return redirect('dashboard_docente')
 
-    # Calcolo il totale
     totale = lezioni_da_pagare.aggregate(Sum('prezzo'))['prezzo__sum'] or 0
 
     if azione == 'invia_riepilogo':
@@ -372,7 +356,7 @@ def gestione_pagamenti(request, studente_id, azione):
             invia_email_custom(
                 soggetto=f'Riepilogo Lezioni da Saldare - {studente.first_name}',
                 destinatari=[studente.email],
-                template_name='riepilogo_pagamenti.html',  # Assicurati di creare questo file
+                template_name='riepilogo_pagamenti.html',
                 context={
                     'lezioni': lezioni_da_pagare,
                     'totale': totale,
@@ -384,7 +368,6 @@ def gestione_pagamenti(request, studente_id, azione):
             messages.error(request, "Lo studente non ha un'email salvata.")
 
     elif azione == 'segna_pagato':
-        # Aggiorna tutte le lezioni in una volta sola
         numero_lezioni = lezioni_da_pagare.update(pagata=True)
         messages.success(request,
                          f"Segnate come pagate {numero_lezioni} lezioni per {studente.first_name}. Incasso di € {totale} registrato!")
