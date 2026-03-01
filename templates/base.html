@@ -33,16 +33,22 @@
             transition: background-color 0.3s ease, color 0.3s ease;
         }
 
-        /* Navbar: effetto vetro smerigliato */
         .navbar {
             background: var(--bs-surface-bg);
             backdrop-filter: blur(10px);
             border-bottom: 1px solid rgba(0, 0, 0, 0.05);
             padding: 1rem 0;
+            transition: transform 0.3s ease-in-out, background-color 0.3s ease, border-color 0.3s ease;
         }
 
         [data-bs-theme="dark"] .navbar {
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        @media (max-width: 991.98px) {
+            .navbar-hidden {
+                transform: translateY(-100%);
+            }
         }
 
         .navbar-brand {
@@ -55,7 +61,7 @@
             border: none;
             border-radius: var(--card-radius);
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
-            transition: box-shadow 0.2s ease; /* Rimossa transition transform per evitare il "salto" */
+            transition: box-shadow 0.2s ease;
             overflow: hidden;
             background-color: var(--bs-body-bg);
             border: 1px solid var(--bs-border-color-translucent);
@@ -68,7 +74,6 @@
         }
 
         .card:hover {
-            /* Solo ombra, niente movimento verso l'alto */
             box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
         }
 
@@ -128,7 +133,6 @@
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
         }
 
-        /* Gestione stato di caricamento HTMX (spinner) */
         .htmx-indicator {
             opacity: 0;
             transition: opacity 200ms ease-in;
@@ -141,7 +145,7 @@
 </head>
 <body class="bg-body-tertiary">
 
-<nav class="navbar navbar-expand-lg sticky-top bg-body shadow-sm">
+<nav class="navbar navbar-expand-lg sticky-top bg-body shadow-sm" id="mainNavbar">
     <div class="container">
         <a class="navbar-brand d-flex align-items-center gap-2" href="{% url 'dashboard' %}">
             <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center"
@@ -223,7 +227,6 @@
     const themeIcon = document.getElementById('themeIcon');
     const htmlElement = document.documentElement;
 
-    // Recupero preferenza da localStorage o uso quella di sistema
     const savedTheme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
     setTheme(savedTheme);
 
@@ -253,7 +256,7 @@
         el.classList.add('form-check-input');
     });
 
-    // Auto-close degli alert dopo 4 secondi per non intasare l'interfaccia
+    // Auto-close degli alert dopo 4 secondi
     setTimeout(function () {
         let alerts = document.querySelectorAll('.alert');
         alerts.forEach(function (alert) {
@@ -261,6 +264,31 @@
             bsAlert.close();
         });
     }, 4000);
+
+    // Gestione Navbar a scomparsa dinamica (solo smartphone)
+    let lastScrollTop = 0;
+    const navbar = document.getElementById('mainNavbar');
+
+    window.addEventListener('scroll', function() {
+        // Controllo se lo schermo è quello di un dispositivo mobile (< 992px)
+        if (window.innerWidth < 992) {
+            let scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+
+            // Nascondo la navbar solo se scendo ed ho superato un certo margine (es. 50px)
+            if (scrollTop > lastScrollTop && scrollTop > 50) {
+                navbar.classList.add('navbar-hidden');
+            } else {
+                // Se salgo, la mostro di nuovo
+                navbar.classList.remove('navbar-hidden');
+            }
+
+            // Evita comportamenti strani su iOS (bounce effect)
+            lastScrollTop = scrollTop <= 0 ? 0 : scrollTop;
+        } else {
+            // Se la finestra viene allargata (desktop), assicurati che la navbar sia visibile
+            navbar.classList.remove('navbar-hidden');
+        }
+    });
 </script>
 </body>
 </html>
