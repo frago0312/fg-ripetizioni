@@ -8,6 +8,7 @@ from datetime import timedelta
 
 
 class RegistrazioneForm(UserCreationForm):
+    """Form di registrazione con email, nome e cognome obbligatori."""
     email = forms.EmailField(required=True, label="Indirizzo Email")
     first_name = forms.CharField(required=True, label="Nome")
     last_name = forms.CharField(required=True, label="Cognome")
@@ -24,15 +25,16 @@ class RegistrazioneForm(UserCreationForm):
 
 
 class PrenotazioneForm(forms.ModelForm):
+    """Form per prenotare una lezione. Gli slot orari vengono caricati via HTMX dopo la scelta della data."""
+
     data = forms.DateField(
         widget=forms.DateInput(attrs={
             'type': 'date',
             'class': 'form-control',
-            # HTMX: quando cambi la data, ricarico la select delle ore
             'hx-get': '/htmx/get-orari/',
             'hx-target': '#id_ora',
             'hx-trigger': 'change',
-            'hx-indicator': '#loading-spinner'
+            'hx-indicator': '#loading-spinner',
         }),
         label="Giorno Desiderato"
     )
@@ -45,16 +47,38 @@ class PrenotazioneForm(forms.ModelForm):
 
     class Meta:
         model = Lezione
-        fields = ['durata_ore', 'luogo', 'note']
+        fields = ['durata_ore', 'luogo', 'materia', 'note']
         widgets = {
-            'durata_ore': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.5', 'min': '0.5', 'max': '4'}),
-            'luogo': forms.Select(attrs={'class': 'form-select'}),
-            'note': forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'Argomenti o note...'}),
+            'durata_ore': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.5',
+                'min': '1.0',
+                'max': '6.0',
+                'hx-get': '/htmx/anteprima-prezzo/',
+                'hx-target': '#anteprima-prezzo',
+                'hx-include': '[name="luogo"]',
+                'hx-trigger': 'change',
+            }),
+            'luogo': forms.Select(attrs={
+                'class': 'form-select',
+                'hx-get': '/htmx/anteprima-prezzo/',
+                'hx-target': '#anteprima-prezzo',
+                'hx-include': '[name="durata_ore"]',
+                'hx-trigger': 'change',
+            }),
+            'materia': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Es. Matematica, Fisica',
+            }),
+            'note': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 2,
+                'placeholder': 'Argomenti specifici o informazioni utili...',
+            }),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Fix per Django: se non popolo le choices nel POST, la validazione fallisce
         if 'data' in self.data and 'ora' in self.data:
             self.fields['ora'].choices = [(self.data['ora'], self.data['ora'])]
 
@@ -65,26 +89,30 @@ class PrenotazioneForm(forms.ModelForm):
         durata = cleaned_data.get("durata_ore")
 
         if data_scelta and ora_scelta and durata:
-            orario_str = f"{data_scelta} {ora_scelta}"
-            inizio_richiesto = datetime.datetime.strptime(orario_str, "%Y-%m-%d %H:%M")
+            if float(durata) < 1.0:
+                raise forms.ValidationError("La durata minima è 1 ora.")
+
+            inizio_richiesto = datetime.datetime.strptime(f"{data_scelta} {ora_scelta}", "%Y-%m-%d %H:%M")
             inizio_richiesto = timezone.make_aware(inizio_richiesto)
 
-            # 1. Controllo disponibilità giorno
+            if inizio_richiesto < timezone.now():
+                raise forms.ValidationError("Non puoi prenotare una lezione nel passato.")
+
             giorno_sett = inizio_richiesto.weekday()
             try:
                 disp = Disponibilita.objects.get(giorno=giorno_sett)
             except Disponibilita.DoesNotExist:
-                raise forms.ValidationError("In questo giorno non faccio lezione (controlla Admin).")
+                raise forms.ValidationError("In questo giorno non faccio lezione.")
 
-            # 2. Controllo range orario
             ora_inizio_disp = timezone.make_aware(datetime.datetime.combine(data_scelta, disp.ora_inizio))
             ora_fine_disp = timezone.make_aware(datetime.datetime.combine(data_scelta, disp.ora_fine))
             fine_richiesta = inizio_richiesto + timedelta(hours=float(durata))
 
             if inizio_richiesto < ora_inizio_disp or fine_richiesta > ora_fine_disp:
-                raise forms.ValidationError(f"Orario fuori disponibilità ({disp.ora_inizio.strftime('%H:%M')} - {disp.ora_fine.strftime('%H:%M')})")
+                raise forms.ValidationError(
+                    f"Orario fuori dalla mia disponibilità ({disp.ora_inizio.strftime('%H:%M')} - {disp.ora_fine.strftime('%H:%M')})"
+                )
 
-            # 3. Controllo sovrapposizioni
             conflitti = Lezione.objects.filter(
                 stato__in=['RICHIESTA', 'CONFERMATA'],
                 data_inizio__lt=fine_richiesta,
@@ -94,7 +122,8 @@ class PrenotazioneForm(forms.ModelForm):
                 fine_lezione = lezione.data_inizio + timedelta(hours=float(lezione.durata_ore))
                 if inizio_richiesto < fine_lezione and fine_richiesta > lezione.data_inizio:
                     raise forms.ValidationError(
-                        f"Orario occupato da un'altra lezione ({lezione.data_inizio.strftime('%H:%M')}).")
+                        f"Orario già occupato da un'altra lezione ({lezione.data_inizio.strftime('%H:%M')})."
+                    )
 
             cleaned_data['data_inizio_calcolata'] = inizio_richiesto
 
@@ -109,6 +138,7 @@ class PrenotazioneForm(forms.ModelForm):
 
 
 class ProfiloForm(forms.ModelForm):
+    """Form per aggiornare i dati del profilo studente."""
     class Meta:
         model = Profilo
         fields = ['telefono', 'indirizzo', 'scuola']
@@ -120,6 +150,7 @@ class ProfiloForm(forms.ModelForm):
 
 
 class ChiusuraForm(forms.ModelForm):
+    """Form per aggiungere un periodo di chiusura (ferie, festività)."""
     class Meta:
         model = GiornoChiusura
         fields = ['data_inizio', 'data_fine', 'motivo']
@@ -133,12 +164,13 @@ class ChiusuraForm(forms.ModelForm):
         cleaned_data = super().clean()
         inizio = cleaned_data.get("data_inizio")
         fine = cleaned_data.get("data_fine")
-
         if fine and fine < inizio:
-            self.add_error('data_fine', "La data fine non può essere prima dell'inizio!")
+            self.add_error('data_fine', "La data fine non può essere prima dell'inizio.")
+        return cleaned_data
 
 
 class DisponibilitaForm(forms.ModelForm):
+    """Form per impostare la disponibilità oraria di un giorno della settimana."""
     class Meta:
         model = Disponibilita
         fields = ['giorno', 'ora_inizio', 'ora_fine']
@@ -150,6 +182,7 @@ class DisponibilitaForm(forms.ModelForm):
 
 
 class ImpostazioniForm(forms.ModelForm):
+    """Form per modificare la tariffa oraria base globale."""
     class Meta:
         model = Impostazioni
         fields = ['tariffa_base']

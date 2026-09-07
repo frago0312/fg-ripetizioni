@@ -1,24 +1,134 @@
-{% extends 'emails/base_email.html' %}
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nuova Richiesta di Lezione</title>
+</head>
+<body style="font-family: Arial, Helvetica, sans-serif; background-color: #f8fafc; margin: 0; padding: 20px; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%;">
+    
+    <table width="100%" border="0" cellpadding="0" cellspacing="0">
+        <tr>
+            <td align="center">
+                
+                <!-- Main Container Card -->
+                <table width="100%" border="0" cellpadding="0" cellspacing="0" style="max-width: 540px; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.06); margin: 0 auto; border: 1px solid #e2e8f0;">
+                    
+                    <!-- Header Banner -->
+                    <tr>
+                        <td align="center" style="background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%); background-color: #4f46e5; padding: 32px 24px; color: #ffffff;">
+                            <div style="font-size: 36px; line-height: 1; margin-bottom: 10px;">🔔</div>
+                            <h2 style="margin: 0; font-size: 22px; font-weight: bold; color: #ffffff; letter-spacing: -0.3px;">Nuova Richiesta di Lezione</h2>
+                            <p style="margin: 6px 0 0; font-size: 14px; color: #e0e7ff; opacity: 0.95;">
+                                Da: <strong>{{ lezione.studente.get_full_name|default:lezione.studente.username }}</strong>
+                            </p>
+                        </td>
+                    </tr>
 
-{% block content %}
-    <h3>👋 Ciao Prof!</h3>
-    <p>Hai ricevuto una nuova richiesta di lezione.</p>
+                    <!-- Content Details Table -->
+                    <tr>
+                        <td style="padding: 24px 24px 16px;">
+                            
+                            <table width="100%" border="0" cellpadding="0" cellspacing="0" style="border-collapse: collapse;">
+                                <tr>
+                                    <td style="padding: 12px 0; border-bottom: 1px solid #f1f5f9; color: #64748b; font-size: 14px; text-align: left;">
+                                        Studente
+                                    </td>
+                                    <td align="right" style="padding: 12px 0; border-bottom: 1px solid #f1f5f9; color: #0f172a; font-weight: bold; font-size: 14px; text-align: right;">
+                                        {{ lezione.studente.get_full_name|default:lezione.studente.username }}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 12px 0; border-bottom: 1px solid #f1f5f9; color: #64748b; font-size: 14px; text-align: left;">
+                                        Email
+                                    </td>
+                                    <td align="right" style="padding: 12px 0; border-bottom: 1px solid #f1f5f9; color: #2563eb; font-weight: bold; font-size: 14px; text-align: right;">
+                                        {{ lezione.studente.email|default:"Non specificata" }}
+                                    </td>
+                                </tr>
+                                {% if lezione.studente.profilo.telefono %}
+                                <tr>
+                                    <td style="padding: 12px 0; border-bottom: 1px solid #f1f5f9; color: #64748b; font-size: 14px; text-align: left;">
+                                        Telefono / WhatsApp
+                                    </td>
+                                    <td align="right" style="padding: 12px 0; border-bottom: 1px solid #f1f5f9; color: #0f172a; font-weight: bold; font-size: 14px; text-align: right;">
+                                        {{ lezione.studente.profilo.telefono }}
+                                    </td>
+                                </tr>
+                                {% endif %}
+                                <tr>
+                                    <td style="padding: 12px 0; border-bottom: 1px solid #f1f5f9; color: #64748b; font-size: 14px; text-align: left;">
+                                        Data
+                                    </td>
+                                    <td align="right" style="padding: 12px 0; border-bottom: 1px solid #f1f5f9; color: #0f172a; font-weight: bold; font-size: 14px; text-align: right;">
+                                        {{ lezione.data_inizio|date:"l d M Y" }}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 12px 0; border-bottom: 1px solid #f1f5f9; color: #64748b; font-size: 14px; text-align: left;">
+                                        Orario & Durata
+                                    </td>
+                                    <td align="right" style="padding: 12px 0; border-bottom: 1px solid #f1f5f9; color: #0f172a; font-weight: bold; font-size: 14px; text-align: right;">
+                                        Ore {{ lezione.data_inizio|date:"H:i" }} ({{ lezione.durata_ore }}h)
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 12px 0; border-bottom: 1px solid #f1f5f9; color: #64748b; font-size: 14px; text-align: left;">
+                                        Luogo
+                                    </td>
+                                    <td align="right" style="padding: 12px 0; border-bottom: 1px solid #f1f5f9; color: #0f172a; font-weight: bold; font-size: 14px; text-align: right;">
+                                        {{ lezione.get_luogo_display }}
+                                    </td>
+                                </tr>
+                                {% if lezione.materia %}
+                                <tr>
+                                    <td style="padding: 12px 0; border-bottom: 1px solid #f1f5f9; color: #64748b; font-size: 14px; text-align: left;">
+                                        Materia
+                                    </td>
+                                    <td align="right" style="padding: 12px 0; border-bottom: 1px solid #f1f5f9; color: #4f46e5; font-weight: bold; font-size: 14px; text-align: right;">
+                                        {{ lezione.materia }}
+                                    </td>
+                                </tr>
+                                {% endif %}
+                                {% if lezione.note %}
+                                <tr>
+                                    <td style="padding: 12px 0; border-bottom: 1px solid #f1f5f9; color: #64748b; font-size: 14px; text-align: left;">
+                                        Note
+                                    </td>
+                                    <td align="right" style="padding: 12px 0; border-bottom: 1px solid #f1f5f9; color: #334155; font-style: italic; font-size: 14px; text-align: right;">
+                                        {{ lezione.note }}
+                                    </td>
+                                </tr>
+                                {% endif %}
+                                <tr>
+                                    <td style="padding: 14px 0; color: #64748b; font-size: 15px; text-align: left; font-weight: bold;">
+                                        Importo Stimato
+                                    </td>
+                                    <td align="right" style="padding: 14px 0; color: #4f46e5; font-weight: bold; font-size: 18px; text-align: right;">
+                                        € {{ lezione.prezzo }}
+                                    </td>
+                                </tr>
+                            </table>
 
-    <div class="info-box">
-        <strong>Studente:</strong> {{ lezione.studente.first_name }} {{ lezione.studente.last_name }}<br>
-        <strong>Data:</strong> {{ lezione.data_inizio|date:"d F Y" }}<br>
-        <strong>Ora:</strong> {{ lezione.data_inizio|date:"H:i" }}<br>
-        <strong>Durata:</strong> {{ lezione.durata_ore }} ore<br>
-        <strong>Luogo:</strong> {{ lezione.get_luogo_display }}
+                        </td>
+                    </tr>
 
-        {% if lezione.note %}
-            <br><br>
-            <strong>Note dello studente:</strong><br>
-            <em>"{{ lezione.note }}"</em>
-        {% endif %}
-    </div>
+                    <!-- Footer -->
+                    <tr>
+                        <td align="center" style="background-color: #f8fafc; padding: 20px; border-top: 1px solid #e2e8f0; color: #64748b; font-size: 13px;">
+                            Accedi alla tua <strong style="color: #4f46e5;">Dashboard Docente</strong> per accettare o rifiutare la richiesta.
+                        </td>
+                    </tr>
 
-    <p style="text-align: center;">
-        <a href="https://francescogori03.eu.pythonanywhere.com/dashboard-docente/" class="btn">Vai alla Dashboard</a>
-    </p>
-{% endblock %}
+                </table>
+
+                <p style="text-align: center; color: #94a3b8; font-size: 12px; margin-top: 16px;">
+                    FG Ripetizioni · Notifica automatica del sistema
+                </p>
+
+            </td>
+        </tr>
+    </table>
+
+</body>
+</html>

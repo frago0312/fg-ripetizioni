@@ -1,32 +1,89 @@
 <!DOCTYPE html>
-<html>
+<html lang="it">
 <head>
-    <style>
-        body { font-family: sans-serif; color: #333; line-height: 1.6; }
-        .box { border: 1px solid #ddd; padding: 15px; border-radius: 8px; background-color: #f9f9f9; }
-        .total { font-size: 1.2em; color: #d9534f; font-weight: bold; }
-        ul { padding-left: 20px; }
-    </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Riepilogo Pagamenti</title>
 </head>
-<body>
-    <h3>Ciao {{ studente.first_name }},</h3>
-    <p>Ecco un riepilogo delle lezioni ancora da saldare.</p>
+<body style="font-family: Arial, Helvetica, sans-serif; background-color: #f8fafc; margin: 0; padding: 20px; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%;">
     
-    <div class="box">
-        <ul>
-            {% for lezione in lezioni %}
-            <li>
-                <strong>{{ lezione.data_inizio|date:"l d/m" }}</strong> 
-                ({{ lezione.durata_ore }}h) - 
-                € {{ lezione.prezzo }}
-            </li>
-            {% endfor %}
-        </ul>
-        <hr>
-        <p>Totale da saldare: <span class="total">€ {{ totale }}</span></p>
-    </div>
+    <table width="100%" border="0" cellpadding="0" cellspacing="0">
+        <tr>
+            <td align="center">
+                
+                <!-- Main Card -->
+                <table width="100%" border="0" cellpadding="0" cellspacing="0" style="max-width: 540px; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.06); margin: 0 auto; border: 1px solid #e2e8f0;">
+                    
+                    <!-- Header -->
+                    <tr>
+                        <td align="center" style="background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%); background-color: #4f46e5; padding: 32px 24px; color: #ffffff;">
+                            <div style="font-size: 36px; line-height: 1; margin-bottom: 10px;">📄</div>
+                            <h2 style="margin: 0; font-size: 22px; font-weight: bold; color: #ffffff; letter-spacing: -0.3px;">Riepilogo Lezioni</h2>
+                            <p style="margin: 6px 0 0; font-size: 14px; color: #e0e7ff; opacity: 0.95;">
+                                Ciao <strong>{{ studente.first_name|default:studente.username }}</strong>, ecco il resoconto delle lezioni da saldare.
+                            </p>
+                        </td>
+                    </tr>
 
-    <p>Fammi sapere quando riesci a saldare. Grazie!</p>
-    <p><em>Francesco</em></p>
+                    <!-- Lessons Table -->
+                    <tr>
+                        <td style="padding: 24px 24px 16px;">
+                            
+                            <table width="100%" border="0" cellpadding="0" cellspacing="0" style="border-collapse: collapse;">
+                                <thead>
+                                    <tr>
+                                        <th align="left" style="padding: 8px 0; border-bottom: 2px solid #e2e8f0; color: #64748b; font-size: 12px; text-transform: uppercase;">Lezione</th>
+                                        <th align="right" style="padding: 8px 0; border-bottom: 2px solid #e2e8f0; color: #64748b; font-size: 12px; text-transform: uppercase;">Importo</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for lezione in lezioni %}
+                                    <tr>
+                                        <td style="padding: 12px 0; border-bottom: 1px solid #f1f5f9; color: #1e293b; font-size: 14px; text-align: left;">
+                                            <div style="font-weight: bold;">{{ lezione.data_inizio|date:"d/m/Y H:i" }}</div>
+                                            <div style="color: #64748b; font-size: 12px;">
+                                                {{ lezione.durata_ore }}h{% if lezione.materia %} · {{ lezione.materia }}{% endif %}
+                                            </div>
+                                        </td>
+                                        <td align="right" style="padding: 12px 0; border-bottom: 1px solid #f1f5f9; color: #1e293b; font-weight: bold; font-size: 14px; text-align: right;">
+                                            € {{ lezione.prezzo }}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+
+                            <!-- Total Box -->
+                            <table width="100%" border="0" cellpadding="0" cellspacing="0" style="margin-top: 16px; background-color: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0;">
+                                <tr>
+                                    <td style="padding: 14px 16px; font-size: 14px; color: #475569; font-weight: bold;">
+                                        Totale Complessivo
+                                    </td>
+                                    <td align="right" style="padding: 14px 16px; font-size: 18px; color: #4f46e5; font-weight: bold;">
+                                        € {{ totale|floatformat:2 }}
+                                    </td>
+                                </tr>
+                            </table>
+
+                        </td>
+                    </tr>
+
+                    <!-- Footer note -->
+                    <tr>
+                        <td align="center" style="background-color: #f8fafc; padding: 18px; border-top: 1px solid #e2e8f0; color: #64748b; font-size: 13px;">
+                            Per qualsiasi chiarimento o accordo sulle modalità di pagamento, rispondi pure a questa email.
+                        </td>
+                    </tr>
+
+                </table>
+
+                <p style="text-align: center; color: #94a3b8; font-size: 12px; margin-top: 16px;">
+                    FG Ripetizioni · Francesco Gori
+                </p>
+
+            </td>
+        </tr>
+    </table>
+
 </body>
 </html>

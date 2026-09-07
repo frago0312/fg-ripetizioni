@@ -106,7 +106,7 @@ STATIC_ROOT = BASE_DIR / "static"
 
 # Redirect dopo login/logout
 LOGIN_REDIRECT_URL = 'dashboard'
-LOGOUT_REDIRECT_URL = 'login'
+LOGOUT_REDIRECT_URL = 'landing'
 
 # --- EMAIL CONFIGURATION (SMTP Gmail) ---
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
@@ -120,3 +120,26 @@ EMAIL_HOST_PASSWORD = os.getenv('EMAIL_PASSWORD')
 
 DEFAULT_FROM_EMAIL = f'FG Ripetizioni <{EMAIL_HOST_USER}>'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Django messages → Bootstrap alert classes
+from django.contrib.messages import constants as messages
+MESSAGE_TAGS = {
+    messages.DEBUG: 'secondary',
+    messages.INFO: 'info',
+    messages.SUCCESS: 'success',
+    messages.WARNING: 'warning',
+    messages.ERROR: 'danger',
+}
+
+# Logging: errori a console, utile per debug email failures
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {'class': 'logging.StreamHandler'},
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'WARNING',
+    },
+}

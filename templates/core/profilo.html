@@ -1,36 +1,71 @@
 {% extends 'base.html' %}
+{% block title %}Il Mio Profilo — FG Ripetizioni{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-6">
-        <div class="card shadow">
-            <div class="card-header bg-transparent text-center pt-4 border-0">
-                <div class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-2" style="width: 64px; height: 64px; font-size: 28px;">
-                    <i class="bi bi-person"></i>
+<div class="d-flex align-items-center mb-4">
+    <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary btn-sm me-3 rounded-circle"
+       style="width:34px;height:34px;padding:0;display:flex;align-items:center;justify-content:center;">
+        <i class="bi bi-arrow-left"></i>
+    </a>
+    <h2 class="fw-bold mb-0">Il Mio Profilo</h2>
+</div>
+
+<div class="row g-4">
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm text-center p-4">
+            <!-- Avatar con iniziali -->
+            <div class="mx-auto mb-3 d-flex align-items-center justify-content-center rounded-circle text-white fw-bold"
+                 style="width:80px;height:80px;font-size:2rem;background:var(--primary-gradient);">
+                {% if user.first_name %}
+                    {{ user.first_name|first|upper }}{{ user.last_name|first|upper }}
+                {% else %}
+                    {{ user.username|slice:":2"|upper }}
+                {% endif %}
+            </div>
+            <h5 class="fw-bold mb-0">{{ user.get_full_name|default:user.username }}</h5>
+            <p class="text-body-secondary small mb-3">{{ user.email }}</p>
+            <hr class="opacity-10">
+            <!-- Statistiche -->
+            <div class="row g-2 text-center mt-1">
+                <div class="col-4">
+                    <div class="fw-bold fs-5">{{ num_lezioni }}</div>
+                    <div class="text-body-secondary" style="font-size:0.7rem;">Lezioni</div>
                 </div>
-                <h4 class="fw-bold">I tuoi Dati</h4>
+                <div class="col-4">
+                    <div class="fw-bold fs-5">{{ stats.totale_ore|default:"0"|floatformat:1 }}</div>
+                    <div class="text-body-secondary" style="font-size:0.7rem;">Ore</div>
+                </div>
+                <div class="col-4">
+                    <div class="fw-bold fs-5">€ {{ stats.totale_pagato|default:"0"|floatformat:0 }}</div>
+                    <div class="text-body-secondary" style="font-size:0.7rem;">Pagato</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header">
+                <h5 class="mb-0 fw-bold"><i class="bi bi-pencil me-2 text-primary"></i>Aggiorna Dati</h5>
             </div>
             <div class="card-body p-4">
-                <div class="alert alert-info d-flex gap-2 align-items-center p-2 mb-4">
-                    <i class="bi bi-info-circle-fill"></i>
-                    <small>Utile per contattarti in caso di urgenza.</small>
-                </div>
-
                 <form method="post">
                     {% csrf_token %}
-
-                    {% for field in form %}
                     <div class="mb-3">
-                        <label class="form-label fw-bold small text-body-secondary">{{ field.label }}</label>
-                        {{ field }}
-                        {% if field.help_text %}<div class="form-text small">{{ field.help_text }}</div>{% endif %}
-                        {% for error in field.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                        <label class="form-label fw-semibold small text-body-secondary">Telefono</label>
+                        {{ form.telefono }}
                     </div>
-                    {% endfor %}
-
-                    <div class="d-grid mt-4">
-                        <button type="submit" class="btn btn-primary shadow-sm">Salva Modifiche</button>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small text-body-secondary">Indirizzo</label>
+                        {{ form.indirizzo }}
                     </div>
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold small text-body-secondary">Scuola / Classe</label>
+                        {{ form.scuola }}
+                    </div>
+                    <button type="submit" class="btn btn-primary fw-bold">
+                        <i class="bi bi-save me-2"></i>Salva Modifiche
+                    </button>
                 </form>
             </div>
         </div>

@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+{% block title %}500 — Errore del server{% endblock %}
+{% block content %}
+<div class="text-center py-5">
+    <div style="font-size:6rem; line-height:1;">⚙️</div>
+    <h1 class="display-4 fw-bold mt-3">500</h1>
+    <h2 class="fw-semibold mb-3">Errore del server</h2>
+    <p class="text-body-secondary mb-4">Qualcosa è andato storto. Riprova tra qualche momento.</p>
+    <a href="{% url 'landing' %}" class="btn btn-primary px-5 py-3">
+        <i class="bi bi-house me-2"></i>Torna alla Home
+    </a>
+</div>
+{% endblock %}

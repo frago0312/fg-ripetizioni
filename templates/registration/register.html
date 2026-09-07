@@ -1,37 +1,148 @@
 {% extends 'base.html' %}
+{% block title %}Registrati — FG Ripetizioni{% endblock %}
+
+{% block extra_head %}
+<style>
+.auth-wrapper {
+    min-height: calc(85vh - 80px);
+    display: flex;
+    align-items: center;
+    padding: 1.5rem 0;
+}
+.auth-left {
+    background: var(--primary-gradient);
+    border-radius: 22px;
+    padding: 3.5rem 2.75rem;
+    color: white;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    box-shadow: 0 15px 35px var(--primary-glow);
+    position: relative;
+    overflow: hidden;
+}
+.auth-left::before {
+    content: '';
+    position: absolute;
+    top: -30%;
+    right: -20%;
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 70%);
+    pointer-events: none;
+}
+.auth-card {
+    border-radius: 22px;
+    padding: 2.5rem 2.25rem;
+    background: var(--bs-body-bg);
+    border: 1px solid var(--border-subtle);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.04);
+}
+.auth-card .form-control {
+    font-size: 0.93rem;
+}
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center mt-4">
-    <div class="col-md-7 col-lg-5">
-        <div class="card shadow-lg">
-            <div class="card-body p-4 p-md-5">
-                <h3 class="fw-bold text-center mb-2">Crea Account</h3>
-                <p class="text-center text-body-secondary small mb-4">Inizia a prenotare le tue ripetizioni oggi stesso.</p>
-
-                <form method="post">
-                    {% csrf_token %}
-
-                    {% for field in form %}
-                    <div class="mb-3">
-                        <label class="form-label fw-bold small text-body-secondary">{{ field.label }}</label>
-                        {{ field }}
-                        {% if field.help_text %}
-                            <div class="form-text small">{{ field.help_text }}</div>
-                        {% endif %}
-                        {% for error in field.errors %}
-                            <div class="text-danger small mt-1"><i class="bi bi-exclamation-circle"></i> {{ error }}</div>
-                        {% endfor %}
+<div class="auth-wrapper">
+    <div class="container">
+        <div class="row g-4 align-items-center justify-content-center">
+            
+            <div class="col-lg-5 d-none d-lg-block">
+                <div class="auth-left">
+                    <div class="d-inline-flex align-items-center justify-content-center bg-white rounded-4 mb-4 shadow-sm" style="width: 56px; height: 56px; color: #4f46e5;">
+                        <i class="bi bi-mortarboard-fill fs-3"></i>
                     </div>
-                    {% endfor %}
-
-                    <div class="d-grid mt-4">
-                        <button type="submit" class="btn btn-primary btn-lg shadow-sm">Registrati</button>
+                    <h2 class="fw-bold mb-2">Inizia il tuo percorso</h2>
+                    <p class="opacity-90 mb-4" style="line-height:1.6;">
+                        Registrati in 30 secondi e prenota le tue lezioni individuali. Nessun costo anticipato o abbonamento.
+                    </p>
+                    <div class="d-flex flex-column gap-3">
+                        <div class="d-flex align-items-center gap-3 opacity-95">
+                            <i class="bi bi-check-circle-fill text-info fs-5"></i>
+                            <span>Scelta libera di data, ora e durata</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-3 opacity-95">
+                            <i class="bi bi-check-circle-fill text-info fs-5"></i>
+                            <span>Lezioni sia online che a domicilio</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-3 opacity-95">
+                            <i class="bi bi-check-circle-fill text-info fs-5"></i>
+                            <span>Email di benvenuto con tutti i dettagli</span>
+                        </div>
                     </div>
-                </form>
+                </div>
             </div>
-            <div class="card-footer bg-transparent text-center border-0 pb-4">
-                <small class="text-body-secondary">Hai già un account? <a href="{% url 'login' %}" class="fw-bold text-decoration-none">Accedi</a></small>
+
+            <div class="col-lg-6 col-md-9">
+                <div class="auth-card">
+                    <div class="mb-4">
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-1 mb-2">
+                            Nuovo Studente
+                        </span>
+                        <h3 class="fw-bold mb-1">Crea il tuo account</h3>
+                        <p class="text-body-secondary small mb-0">Compila i campi sottostanti per iniziare subito.</p>
+                    </div>
+
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="row g-3 mb-3">
+                            <div class="col-6">
+                                <label class="form-label fw-semibold small">Nome</label>
+                                <input type="text" name="first_name" class="form-control" placeholder="Mario" required
+                                       value="{{ form.first_name.value|default:'' }}">
+                                {% if form.first_name.errors %}<div class="text-danger small mt-1">{{ form.first_name.errors.0 }}</div>{% endif %}
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label fw-semibold small">Cognome</label>
+                                <input type="text" name="last_name" class="form-control" placeholder="Rossi" required
+                                       value="{{ form.last_name.value|default:'' }}">
+                                {% if form.last_name.errors %}<div class="text-danger small mt-1">{{ form.last_name.errors.0 }}</div>{% endif %}
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold small">Email</label>
+                            <input type="email" name="email" class="form-control" placeholder="mario@esempio.it" required
+                                   value="{{ form.email.value|default:'' }}">
+                            {% if form.email.errors %}<div class="text-danger small mt-1">{{ form.email.errors.0 }}</div>{% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold small">Username</label>
+                            <input type="text" name="username" class="form-control" placeholder="mario_rossi"
+                                   value="{{ form.username.value|default:'' }}" required>
+                            {% if form.username.errors %}<div class="text-danger small mt-1">{{ form.username.errors.0 }}</div>{% endif %}
+                        </div>
+
+                        <div class="row g-3 mb-4">
+                            <div class="col-sm-6">
+                                <label class="form-label fw-semibold small">Password</label>
+                                <input type="password" name="password1" class="form-control" placeholder="••••••••" required>
+                                {% if form.password1.errors %}<div class="text-danger small mt-1">{{ form.password1.errors.0 }}</div>{% endif %}
+                            </div>
+                            <div class="col-sm-6">
+                                <label class="form-label fw-semibold small">Conferma Password</label>
+                                <input type="password" name="password2" class="form-control" placeholder="••••••••" required>
+                                {% if form.password2.errors %}<div class="text-danger small mt-1">{{ form.password2.errors.0 }}</div>{% endif %}
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100 py-3 fw-bold">
+                            <i class="bi bi-person-check me-2"></i>Registrati Ora
+                        </button>
+                    </form>
+
+                    <hr class="my-4 opacity-10">
+                    <p class="text-center text-body-secondary small mb-0">
+                        Hai già un account?
+                        <a href="{% url 'login' %}" class="text-primary fw-bold text-decoration-none ms-1">Accedi qui</a>
+                    </p>
+                </div>
             </div>
+
         </div>
     </div>
 </div>

@@ -1,39 +1,119 @@
 {% extends 'base.html' %}
+{% block title %}Accedi — FG Ripetizioni{% endblock %}
+
+{% block extra_head %}
+<style>
+.auth-wrapper {
+    min-height: calc(80vh - 80px);
+    display: flex;
+    align-items: center;
+    padding: 1rem 0;
+}
+.auth-left {
+    background: var(--primary-gradient);
+    border-radius: 22px;
+    padding: 3.5rem 2.75rem;
+    color: white;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    box-shadow: 0 15px 35px var(--primary-glow);
+    position: relative;
+    overflow: hidden;
+}
+.auth-left::before {
+    content: '';
+    position: absolute;
+    top: -30%;
+    right: -20%;
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 70%);
+    pointer-events: none;
+}
+.auth-card {
+    border-radius: 22px;
+    padding: 2.75rem 2.25rem;
+    background: var(--bs-body-bg);
+    border: 1px solid var(--border-subtle);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.04);
+}
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center align-items-center" style="min-height: 70vh;">
-    <div class="col-md-5 col-lg-4">
-        <div class="card shadow-lg p-3">
-            <div class="card-body">
-                <div class="text-center mb-4">
-                    <div class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3 shadow" style="width: 60px; height: 60px; font-size: 24px;">
-                        <i class="bi bi-person-fill"></i>
+<div class="auth-wrapper">
+    <div class="container">
+        <div class="row g-4 align-items-center justify-content-center">
+            
+            <div class="col-lg-5 d-none d-lg-block">
+                <div class="auth-left">
+                    <div class="d-inline-flex align-items-center justify-content-center bg-white rounded-4 mb-4 shadow-sm" style="width: 56px; height: 56px; color: #4f46e5;">
+                        <i class="bi bi-mortarboard-fill fs-3"></i>
                     </div>
-                    <h2 class="fw-bold">Bentornato</h2>
-                    <p class="text-body-secondary small">Accedi per gestire le tue lezioni</p>
+                    <h2 class="fw-bold mb-2">Bentornato!</h2>
+                    <p class="opacity-90 mb-4" style="line-height:1.6;">
+                        Accedi alla tua dashboard personale per verificare le prossime lezioni, lo storico e prenotare nuovi slot.
+                    </p>
+                    <div class="d-flex flex-column gap-3">
+                        <div class="d-flex align-items-center gap-3 opacity-95">
+                            <i class="bi bi-check-circle-fill text-info fs-5"></i>
+                            <span>Prenotazione rapida in pochi click</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-3 opacity-95">
+                            <i class="bi bi-check-circle-fill text-info fs-5"></i>
+                            <span>Promemoria automatici via email</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-3 opacity-95">
+                            <i class="bi bi-check-circle-fill text-info fs-5"></i>
+                            <span>Cancellazione autonoma fino a 48h</span>
+                        </div>
+                    </div>
                 </div>
+            </div>
 
-                <form method="post">
-                    {% csrf_token %}
-
-                    <div class="mb-3">
-                        <label class="form-label fw-bold small text-uppercase text-body-secondary">Username</label>
-                        {{ form.username }}
-                    </div>
-
+            <div class="col-lg-5 col-md-8">
+                <div class="auth-card">
                     <div class="mb-4">
-                        <label class="form-label fw-bold small text-uppercase text-body-secondary">Password</label>
-                        {{ form.password }}
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-1 mb-2">
+                            Area Riservata
+                        </span>
+                        <h3 class="fw-bold mb-1">Accedi al tuo account</h3>
+                        <p class="text-body-secondary small mb-0">Inserisci le tue credenziali per continuare.</p>
                     </div>
 
-                    <div class="d-grid">
-                        <button type="submit" class="btn btn-primary py-2 shadow-sm">Accedi</button>
-                    </div>
-                </form>
+                    <form method="post">
+                        {% csrf_token %}
+                        {% if form.errors %}
+                            <div class="alert alert-danger py-2 small d-flex align-items-center gap-2">
+                                <i class="bi bi-exclamation-circle-fill text-danger"></i>
+                                <span>Username o password non corretti.</span>
+                            </div>
+                        {% endif %}
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold small" for="id_username">Username</label>
+                            <input type="text" name="username" id="id_username" class="form-control" placeholder="il_tuo_username" autofocus required>
+                        </div>
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <label class="form-label fw-semibold small mb-0" for="id_password">Password</label>
+                            </div>
+                            <input type="password" name="password" id="id_password" class="form-control" placeholder="••••••••" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 py-3 fw-bold">
+                            <i class="bi bi-box-arrow-in-right me-2"></i>Accedi
+                        </button>
+                    </form>
+
+                    <hr class="my-4 opacity-10">
+                    <p class="text-center text-body-secondary small mb-0">
+                        Non hai ancora un account?
+                        <a href="{% url 'register' %}" class="text-primary fw-bold text-decoration-none ms-1">Registrati subito</a>
+                    </p>
+                </div>
             </div>
-            <div class="card-footer bg-transparent text-center border-0 py-3">
-                <small class="text-body-secondary">Non hai un account? <a href="{% url 'register' %}" class="fw-bold text-decoration-none">Registrati</a></small>
-            </div>
+
         </div>
     </div>
 </div>

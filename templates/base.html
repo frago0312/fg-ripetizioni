@@ -3,156 +3,186 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>FG Ripetizioni</title>
+    <title>{% block title %}FG Ripetizioni{% endblock %}</title>
+    <meta name="description" content="Ripetizioni private di Matematica, Fisica, Chimica, Informatica, Inglese e Scienze. Online o in presenza a Rufina, Pontassieve, Dicomano e Valdisieve.">
 
     <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/2997/2997274.png">
-
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <script src="https://unpkg.com/htmx.org@1.9.10" defer></script>
 
     <style>
         :root {
-            --primary-gradient: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);
-            --card-radius: 16px;
-            --btn-radius: 10px;
-            /* Variabile custom per sfondi semitrasparenti in light mode */
+            --font-heading: 'Plus Jakarta Sans', sans-serif;
+            --font-body: 'Inter', sans-serif;
+            --primary-gradient: linear-gradient(135deg, #4f46e5 0%, #6366f1 50%, #2563eb 100%);
+            --primary-glow: rgba(79, 70, 229, 0.25);
+            --accent-gradient: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%);
+            --card-radius: 18px;
+            --btn-radius: 12px;
             --bs-surface-bg: rgba(255, 255, 255, 0.85);
+            --border-subtle: rgba(0, 0, 0, 0.08);
         }
-
         [data-bs-theme="dark"] {
-            /* Adattamento per la dark mode */
-            --bs-surface-bg: rgba(30, 41, 59, 0.9);
+            --bs-surface-bg: rgba(15, 23, 42, 0.88);
+            --border-subtle: rgba(255, 255, 255, 0.08);
+            --bs-body-bg: #0b0f19;
         }
-
         body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--bs-body-bg);
+            font-family: var(--font-body);
             transition: background-color 0.3s ease, color 0.3s ease;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
-
+        h1, h2, h3, h4, h5, h6, .font-heading {
+            font-family: var(--font-heading);
+            letter-spacing: -0.025em;
+            font-weight: 700;
+        }
+        .text-gradient {
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
         .navbar {
             background: var(--bs-surface-bg);
-            backdrop-filter: blur(10px);
-            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-            padding: 1rem 0;
-            transition: transform 0.3s ease-in-out, background-color 0.3s ease, border-color 0.3s ease;
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border-bottom: 1px solid var(--border-subtle);
+            padding: 0.85rem 0;
+            transition: transform 0.3s ease-in-out, background-color 0.3s ease;
         }
-
-        [data-bs-theme="dark"] .navbar {
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
         @media (max-width: 991.98px) {
-            .navbar-hidden {
-                transform: translateY(-100%);
-            }
+            .navbar-hidden { transform: translateY(-100%); }
         }
-
         .navbar-brand {
-            font-weight: 700;
-            font-size: 1.25rem;
-            color: var(--bs-primary) !important;
+            font-family: var(--font-heading);
+            font-weight: 800;
+            font-size: 1.22rem;
+            letter-spacing: -0.02em;
+            color: var(--bs-body-color) !important;
         }
-
+        .brand-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background: var(--primary-gradient);
+            box-shadow: 0 4px 12px var(--primary-glow);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
         .card {
-            border: none;
             border-radius: var(--card-radius);
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
-            transition: box-shadow 0.2s ease;
-            overflow: hidden;
+            border: 1px solid var(--border-subtle);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.03);
             background-color: var(--bs-body-bg);
-            border: 1px solid var(--bs-border-color-translucent);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            overflow: hidden;
         }
-
         [data-bs-theme="dark"] .card {
-            background-color: #1e293b;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-            border: 1px solid rgba(255, 255, 255, 0.05);
+            background-color: #131b2e;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.3);
         }
-
         .card:hover {
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+            box-shadow: 0 10px 28px rgba(0,0,0,0.07);
         }
-
         .card-header {
             background-color: transparent;
-            border-bottom: 1px solid var(--bs-border-color);
+            border-bottom: 1px solid var(--border-subtle);
             font-weight: 600;
-            padding: 1.25rem 1.5rem;
+            padding: 1.1rem 1.5rem;
         }
-
         .btn {
             border-radius: var(--btn-radius);
-            padding: 0.6rem 1.2rem;
-            font-weight: 500;
-            transition: all 0.2s;
+            padding: 0.65rem 1.3rem;
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: all 0.2s ease;
         }
-
         .btn-primary {
             background: var(--primary-gradient);
             border: none;
+            box-shadow: 0 4px 14px var(--primary-glow);
         }
-
         .btn-primary:hover {
-            opacity: 0.9;
-            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+            opacity: 0.94;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(79,70,229,0.38);
+            color: white;
         }
-
+        .btn-primary:active {
+            transform: translateY(1px);
+        }
+        .badge {
+            border-radius: 999px;
+            padding: 0.45em 0.85em;
+            font-weight: 600;
+            letter-spacing: 0.2px;
+        }
         .table > :not(caption) > * > * {
-            padding: 1rem 1rem;
+            padding: 1rem;
             vertical-align: middle;
             background-color: transparent;
             color: var(--bs-body-color);
         }
-
         .form-control, .form-select {
             border-radius: var(--btn-radius);
-            padding: 0.7rem 1rem;
-            border: 1px solid var(--bs-border-color);
+            padding: 0.72rem 1rem;
+            border: 1px solid var(--border-subtle);
             background-color: var(--bs-body-bg);
             color: var(--bs-body-color);
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
         }
-
         .form-control:focus, .form-select:focus {
-            box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
+            box-shadow: 0 0 0 4px var(--primary-glow);
             border-color: #4f46e5;
         }
-
-        .badge {
-            padding: 0.5em 0.8em;
-            font-weight: 600;
-            letter-spacing: 0.3px;
-        }
-
         .alert {
             border-radius: var(--btn-radius);
-            border: none;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            border: 1px solid transparent;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.04);
         }
-
-        .htmx-indicator {
-            opacity: 0;
-            transition: opacity 200ms ease-in;
+        .theme-toggle-btn {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--bs-body-color);
+            border: 1px solid var(--border-subtle);
+            background: transparent;
+            transition: background 0.2s, transform 0.2s;
         }
-        .htmx-request .htmx-indicator,
-        .htmx-request.htmx-indicator {
-            opacity: 1;
+        .theme-toggle-btn:hover {
+            background: rgba(0,0,0,0.04);
+            transform: scale(1.05);
         }
+        [data-bs-theme="dark"] .theme-toggle-btn:hover {
+            background: rgba(255,255,255,0.06);
+        }
+        .htmx-indicator { opacity: 0; transition: opacity 200ms ease-in; }
+        .htmx-request .htmx-indicator, .htmx-request.htmx-indicator { opacity: 1; }
     </style>
+    {% block extra_head %}{% endblock %}
 </head>
 <body class="bg-body-tertiary">
 
-<nav class="navbar navbar-expand-lg sticky-top bg-body shadow-sm" id="mainNavbar">
+<nav class="navbar navbar-expand-lg sticky-top" id="mainNavbar">
     <div class="container">
-        <a class="navbar-brand d-flex align-items-center gap-2" href="{% url 'dashboard' %}">
-            <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center"
-                 style="width: 35px; height: 35px;">
+        <a class="navbar-brand d-flex align-items-center gap-2" href="{% url 'landing' %}">
+            <div class="brand-icon">
                 <i class="bi bi-mortarboard-fill"></i>
             </div>
-            FG Ripetizioni
+            <span>FG<span class="text-primary">Ripetizioni</span></span>
         </a>
 
         <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -162,8 +192,8 @@
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav ms-auto align-items-center gap-2">
 
-                <li class="nav-item me-2">
-                    <button class="btn btn-link nav-link text-body" id="themeToggle" title="Cambia tema">
+                <li class="nav-item me-1">
+                    <button class="theme-toggle-btn" id="themeToggle" title="Cambia tema">
                         <i class="bi bi-moon-stars-fill" id="themeIcon"></i>
                     </button>
                 </li>
@@ -171,30 +201,38 @@
                 {% if user.is_authenticated %}
                     {% if user.is_staff %}
                         <li class="nav-item">
-                            <a href="{% url 'dashboard_docente' %}"
-                               class="btn btn-sm btn-warning fw-bold text-dark d-flex align-items-center gap-2">
-                                <i class="bi bi-speedometer2"></i> Docente
+                            <a href="{% url 'dashboard_docente' %}" class="btn btn-sm btn-warning fw-bold text-dark d-flex align-items-center gap-2 shadow-sm">
+                                <i class="bi bi-speedometer2"></i> Dashboard Docente
+                                {% if num_richieste %}
+                                    <span class="badge bg-dark text-white rounded-circle" style="font-size:0.65rem;">{{ num_richieste }}</span>
+                                {% endif %}
                             </a>
                         </li>
                     {% endif %}
-
                     <li class="nav-item">
-                        <a href="{% url 'profilo' %}" class="nav-link fw-medium">
-                            {{ user.username }}
+                        <a href="{% url 'dashboard' %}" class="btn btn-sm btn-outline-primary fw-semibold">
+                            <i class="bi bi-grid me-1"></i>Lezioni
                         </a>
                     </li>
-
+                    <li class="nav-item">
+                        <a href="{% url 'profilo' %}" class="nav-link fw-semibold px-2">
+                            <i class="bi bi-person-circle me-1"></i>{{ user.first_name|default:user.username }}
+                        </a>
+                    </li>
                     <li class="nav-item">
                         <form action="{% url 'logout' %}" method="post" class="d-inline">
                             {% csrf_token %}
-                            <button type="submit" class="btn btn-sm btn-outline-danger border-0">
+                            <button type="submit" class="btn btn-sm btn-outline-danger border-0" title="Esci">
                                 <i class="bi bi-box-arrow-right"></i>
                             </button>
                         </form>
                     </li>
                 {% else %}
                     <li class="nav-item">
-                        <a href="{% url 'login' %}" class="btn btn-primary px-4">Accedi</a>
+                        <a href="{% url 'login' %}" class="btn btn-link nav-link text-body fw-semibold px-3">Accedi</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'register' %}" class="btn btn-primary px-4">Inizia Ora</a>
                     </li>
                 {% endif %}
             </ul>
@@ -202,93 +240,126 @@
     </div>
 </nav>
 
-<div class="container py-4 mb-5">
+<main id="main-content" class="flex-grow-1">
     {% if messages %}
-        {% for message in messages %}
-            <div class="alert alert-{{ message.tags }} alert-dismissible fade show d-flex align-items-center gap-2"
-                 role="alert">
-                {% if message.tags == 'success' %}<i class="bi bi-check-circle-fill fs-5"></i>
-                {% elif message.tags == 'danger' %}<i class="bi bi-exclamation-triangle-fill fs-5"></i>
-                {% else %}<i class="bi bi-info-circle-fill fs-5"></i>{% endif %}
-
-                <div>{{ message }}</div>
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        {% endfor %}
+        <div class="container pt-3">
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show d-flex align-items-center gap-2 shadow-sm" role="alert">
+                    {% if message.tags == 'success' %}<i class="bi bi-check-circle-fill fs-5 text-success"></i>
+                    {% elif message.tags == 'danger' or message.tags == 'error' %}<i class="bi bi-exclamation-triangle-fill fs-5 text-danger"></i>
+                    {% elif message.tags == 'warning' %}<i class="bi bi-exclamation-circle-fill fs-5 text-warning"></i>
+                    {% else %}<i class="bi bi-info-circle-fill fs-5 text-primary"></i>{% endif %}
+                    <div class="fw-medium">{{ message }}</div>
+                    <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        </div>
     {% endif %}
 
-    {% block content %}{% endblock %}
+    <div class="{% block main_container %}container py-4 mb-5{% endblock %}">
+        {% block content %}{% endblock %}
+    </div>
+</main>
+
+<footer class="border-top py-4 mt-auto bg-body text-body-secondary small">
+    <div class="container d-flex flex-column flex-sm-row justify-content-between align-items-center gap-3">
+        <div class="d-flex align-items-center gap-2">
+            <div class="brand-icon" style="width:26px;height:26px;font-size:0.75rem;border-radius:6px;">
+                <i class="bi bi-mortarboard-fill"></i>
+            </div>
+            <span class="fw-bold font-heading text-body">FG Ripetizioni</span>
+            <span class="text-body-tertiary">&copy; 2026</span>
+            <span class="d-none d-md-inline text-body-tertiary">&bull; Ripetizioni con Francesco Gori</span>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+            <span class="badge bg-primary-subtle text-primary border border-primary-subtle">
+                <i class="bi bi-geo-alt-fill me-1"></i>Valdisieve & Online
+            </span>
+            <a href="{% url 'landing' %}" class="text-decoration-none text-body-secondary">Home</a>
+            {% if not user.is_authenticated %}
+                <a href="{% url 'login' %}" class="text-decoration-none text-body-secondary">Accedi</a>
+                <a href="{% url 'register' %}" class="text-decoration-none text-body-secondary">Registrati</a>
+            {% else %}
+                <a href="{% url 'dashboard' %}" class="text-decoration-none text-body-secondary">Dashboard</a>
+            {% endif %}
+        </div>
+    </div>
+</footer>
+
+<!-- Modal di conferma generico (usato da tutta l'app) -->
+<div class="modal fade" id="confirmModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius:18px;">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold" id="confirmModalTitle">Conferma</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-body-secondary py-3" id="confirmModalBody"></div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annulla</button>
+                <form id="confirmModalForm" method="post" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn" id="confirmModalBtn">Conferma</button>
+                </form>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    // Gestione Tema Dark/Light
+    // Dark/Light mode
     const themeToggle = document.getElementById('themeToggle');
     const themeIcon = document.getElementById('themeIcon');
-    const htmlElement = document.documentElement;
-
+    const html = document.documentElement;
     const savedTheme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
     setTheme(savedTheme);
-
     themeToggle.addEventListener('click', () => {
-        const currentTheme = htmlElement.getAttribute('data-bs-theme');
-        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-        setTheme(newTheme);
-        localStorage.setItem('theme', newTheme);
+        const next = html.getAttribute('data-bs-theme') === 'dark' ? 'light' : 'dark';
+        setTheme(next);
+        localStorage.setItem('theme', next);
     });
-
-    function setTheme(theme) {
-        htmlElement.setAttribute('data-bs-theme', theme);
-        if (theme === 'dark') {
-            themeIcon.classList.remove('bi-moon-stars-fill');
-            themeIcon.classList.add('bi-sun-fill');
-        } else {
-            themeIcon.classList.remove('bi-sun-fill');
-            themeIcon.classList.add('bi-moon-stars-fill');
-        }
+    function setTheme(t) {
+        html.setAttribute('data-bs-theme', t);
+        themeIcon.className = t === 'dark' ? 'bi bi-sun-fill' : 'bi bi-moon-stars-fill';
     }
 
-    // Aggiungo classi Bootstrap standard a tutti gli input di Django
-    document.querySelectorAll('input:not([type="checkbox"]):not([type="radio"]), select, textarea').forEach(el => {
-        el.classList.add('form-control');
-    });
-    document.querySelectorAll('input[type="checkbox"], input[type="radio"]').forEach(el => {
-        el.classList.add('form-check-input');
-    });
-
-    // Auto-close degli alert dopo 4 secondi
-    setTimeout(function () {
-        let alerts = document.querySelectorAll('.alert');
-        alerts.forEach(function (alert) {
-            let bsAlert = new bootstrap.Alert(alert);
-            bsAlert.close();
+    // Auto-chiusura alert dopo 4s
+    setTimeout(() => {
+        document.querySelectorAll('.alert').forEach(a => {
+            try { new bootstrap.Alert(a).close(); } catch(e) {}
         });
     }, 4000);
 
-    // Gestione Navbar a scomparsa dinamica (solo smartphone)
+    // Navbar nascosta su mobile durante lo scroll verso il basso
     let lastScrollTop = 0;
     const navbar = document.getElementById('mainNavbar');
-
-    window.addEventListener('scroll', function() {
-        // Controllo se lo schermo è quello di un dispositivo mobile (< 992px)
+    const navCollapse = document.getElementById('navbarNav');
+    window.addEventListener('scroll', () => {
         if (window.innerWidth < 992) {
-            let scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-
-            // Nascondo la navbar solo se scendo ed ho superato un certo margine (es. 50px)
-            if (scrollTop > lastScrollTop && scrollTop > 50) {
-                navbar.classList.add('navbar-hidden');
-            } else {
-                // Se salgo, la mostro di nuovo
-                navbar.classList.remove('navbar-hidden');
-            }
-
-            // Evita comportamenti strani su iOS (bounce effect)
-            lastScrollTop = scrollTop <= 0 ? 0 : scrollTop;
+            if (navCollapse && navCollapse.classList.contains('show')) return;
+            const st = window.pageYOffset || document.documentElement.scrollTop;
+            navbar.classList.toggle('navbar-hidden', st > lastScrollTop && st > 50);
+            lastScrollTop = st <= 0 ? 0 : st;
         } else {
-            // Se la finestra viene allargata (desktop), assicurati che la navbar sia visibile
             navbar.classList.remove('navbar-hidden');
         }
     });
+
+    // Modal di conferma generico
+    document.addEventListener('click', e => {
+        const btn = e.target.closest('[data-confirm-url]');
+        if (!btn) return;
+        e.preventDefault();
+        document.getElementById('confirmModalTitle').textContent = btn.dataset.confirmTitle || 'Conferma';
+        document.getElementById('confirmModalBody').textContent = btn.dataset.confirmText || 'Sei sicuro?';
+        const okBtn = document.getElementById('confirmModalBtn');
+        okBtn.textContent = btn.dataset.confirmBtn || 'Conferma';
+        okBtn.className = 'btn ' + (btn.dataset.confirmBtnClass || 'btn-primary');
+        document.getElementById('confirmModalForm').action = btn.dataset.confirmUrl;
+        new bootstrap.Modal(document.getElementById('confirmModal')).show();
+    });
 </script>
+{% block extra_scripts %}{% endblock %}
 </body>
 </html>

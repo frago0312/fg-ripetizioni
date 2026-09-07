@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aggiornamento Lezione</title>
+    <title>Lezione Cancellata</title>
 </head>
 <body style="font-family: Arial, Helvetica, sans-serif; background-color: #f8fafc; margin: 0; padding: 20px; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%;">
     
@@ -16,11 +16,11 @@
                     
                     <!-- Header -->
                     <tr>
-                        <td align="center" style="background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); background-color: #ef4444; padding: 32px 24px; color: #ffffff;">
-                            <div style="font-size: 36px; line-height: 1; margin-bottom: 10px;">📅</div>
-                            <h2 style="margin: 0; font-size: 22px; font-weight: bold; color: #ffffff; letter-spacing: -0.3px;">Lezione Non Disponibile</h2>
-                            <p style="margin: 6px 0 0; font-size: 14px; color: #fee2e2; opacity: 0.95;">
-                                Ciao <strong>{{ lezione.studente.first_name|default:lezione.studente.username }}</strong>, purtroppo non riesco in questo orario.
+                        <td align="center" style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); background-color: #f97316; padding: 32px 24px; color: #ffffff;">
+                            <div style="font-size: 36px; line-height: 1; margin-bottom: 10px;">🗑️</div>
+                            <h2 style="margin: 0; font-size: 22px; font-weight: bold; color: #ffffff; letter-spacing: -0.3px;">Lezione Cancellata</h2>
+                            <p style="margin: 6px 0 0; font-size: 14px; color: #ffedd5; opacity: 0.95;">
+                                Da: <strong>{{ lezione.studente.get_full_name|default:lezione.studente.username }}</strong>
                             </p>
                         </td>
                     </tr>
@@ -32,18 +32,42 @@
                             <table width="100%" border="0" cellpadding="0" cellspacing="0" style="border-collapse: collapse;">
                                 <tr>
                                     <td style="padding: 12px 0; border-bottom: 1px solid #f1f5f9; color: #64748b; font-size: 14px; text-align: left;">
-                                        Data richiesta
+                                        Studente
                                     </td>
                                     <td align="right" style="padding: 12px 0; border-bottom: 1px solid #f1f5f9; color: #0f172a; font-weight: bold; font-size: 14px; text-align: right;">
-                                        {{ lezione.data_inizio|date:"l d M Y H:i" }}
+                                        {{ lezione.studente.get_full_name|default:lezione.studente.username }}
                                     </td>
                                 </tr>
                                 <tr>
                                     <td style="padding: 12px 0; border-bottom: 1px solid #f1f5f9; color: #64748b; font-size: 14px; text-align: left;">
-                                        Durata
+                                        Email
+                                    </td>
+                                    <td align="right" style="padding: 12px 0; border-bottom: 1px solid #f1f5f9; color: #2563eb; font-weight: bold; font-size: 14px; text-align: right;">
+                                        {{ lezione.studente.email|default:"Non specificata" }}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 12px 0; border-bottom: 1px solid #f1f5f9; color: #64748b; font-size: 14px; text-align: left;">
+                                        Data Lezione
                                     </td>
                                     <td align="right" style="padding: 12px 0; border-bottom: 1px solid #f1f5f9; color: #0f172a; font-weight: bold; font-size: 14px; text-align: right;">
-                                        {{ lezione.durata_ore }}h
+                                        {{ lezione.data_inizio|date:"l d M Y" }}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 12px 0; border-bottom: 1px solid #f1f5f9; color: #64748b; font-size: 14px; text-align: left;">
+                                        Orario & Durata
+                                    </td>
+                                    <td align="right" style="padding: 12px 0; border-bottom: 1px solid #f1f5f9; color: #0f172a; font-weight: bold; font-size: 14px; text-align: right;">
+                                        Ore {{ lezione.data_inizio|date:"H:i" }} ({{ lezione.durata_ore }}h)
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 12px 0; border-bottom: 1px solid #f1f5f9; color: #64748b; font-size: 14px; text-align: left;">
+                                        Luogo
+                                    </td>
+                                    <td align="right" style="padding: 12px 0; border-bottom: 1px solid #f1f5f9; color: #0f172a; font-weight: bold; font-size: 14px; text-align: right;">
+                                        {{ lezione.get_luogo_display }}
                                     </td>
                                 </tr>
                                 {% if lezione.materia %}
@@ -51,16 +75,12 @@
                                     <td style="padding: 12px 0; color: #64748b; font-size: 14px; text-align: left;">
                                         Materia
                                     </td>
-                                    <td align="right" style="padding: 12px 0; color: #ef4444; font-weight: bold; font-size: 14px; text-align: right;">
+                                    <td align="right" style="padding: 12px 0; color: #ea580c; font-weight: bold; font-size: 14px; text-align: right;">
                                         {{ lezione.materia }}
                                     </td>
                                 </tr>
                                 {% endif %}
                             </table>
-
-                            <p style="margin: 20px 0 8px; color: #475569; font-size: 14px; line-height: 1.5; text-align: center;">
-                                Nessun problema: puoi richiedere un'altra data o un altro orario direttamente dalla tua dashboard personale.
-                            </p>
 
                         </td>
                     </tr>
@@ -68,14 +88,14 @@
                     <!-- Footer note -->
                     <tr>
                         <td align="center" style="background-color: #f8fafc; padding: 18px; border-top: 1px solid #e2e8f0; color: #64748b; font-size: 13px;">
-                            FG Ripetizioni · Per qualsiasi dubbio rispondi pure a questa email.
+                            Lo studente ha cancellato con più di 48h di anticipo. Lo slot orario è tornato disponibile.
                         </td>
                     </tr>
 
                 </table>
 
                 <p style="text-align: center; color: #94a3b8; font-size: 12px; margin-top: 16px;">
-                    FG Ripetizioni · Francesco Gori
+                    FG Ripetizioni · Notifica automatica del sistema
                 </p>
 
             </td>

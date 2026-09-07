@@ -1,0 +1,487 @@
+{% extends 'base.html' %}
+{% block title %}FG Ripetizioni — Francesco Gori{% endblock %}
+
+{% block main_container %}w-100 p-0 m-0 overflow-x-hidden{% endblock %}
+
+{% block extra_head %}
+<style>
+/* Ambient mesh background for hero */
+.hero-wrapper {
+    position: relative;
+    background: radial-gradient(circle at 15% 20%, rgba(99, 102, 241, 0.12) 0%, transparent 40%),
+                radial-gradient(circle at 85% 15%, rgba(59, 130, 246, 0.1) 0%, transparent 35%),
+                var(--bs-body-bg);
+    border-bottom: 1px solid var(--border-subtle);
+    padding: 3.5rem 0 4rem;
+}
+
+.status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.35rem 0.85rem;
+    border-radius: 999px;
+    background: rgba(79, 70, 229, 0.08);
+    border: 1px solid rgba(79, 70, 229, 0.2);
+    color: #4f46e5;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+[data-bs-theme="dark"] .status-pill {
+    background: rgba(99, 102, 241, 0.15);
+    border-color: rgba(99, 102, 241, 0.3);
+    color: #a5b4fc;
+}
+.pulse-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: #10b981;
+}
+
+.tutor-card {
+    background: var(--bs-body-bg);
+    border: 1px solid var(--border-subtle);
+    box-shadow: 0 15px 35px rgba(0,0,0,0.05);
+    border-radius: 20px;
+}
+
+.materia-pill-card {
+    border-radius: 16px;
+    border: 1px solid var(--border-subtle);
+    background: var(--bs-body-bg);
+    padding: 1.25rem 1.1rem;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    height: 100%;
+}
+.materia-pill-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.05);
+    border-color: rgba(79, 70, 229, 0.3);
+}
+.materia-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    margin-bottom: 0.85rem;
+}
+
+.step-circle {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    background: var(--primary-gradient);
+    color: white;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.95rem;
+    flex-shrink: 0;
+}
+
+.location-tag {
+    background: var(--bs-body-bg);
+    border: 1px solid var(--border-subtle);
+    border-radius: 12px;
+    padding: 0.75rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.95rem;
+}
+
+.chill-card {
+    border-radius: 20px;
+    border: 1px solid var(--border-subtle);
+    background: var(--bs-body-bg);
+    padding: 2rem;
+}
+
+@media (max-width: 767.98px) {
+    .hero-wrapper {
+        padding: 2.25rem 0 2.75rem;
+    }
+    .chill-card {
+        padding: 1.5rem 1.25rem;
+    }
+    .materia-pill-card {
+        padding: 1rem 0.75rem;
+    }
+    .materia-icon {
+        width: 38px;
+        height: 38px;
+        font-size: 1.15rem;
+        margin-bottom: 0.6rem;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- 1. HERO -->
+<section class="hero-wrapper">
+    <div class="container">
+        <div class="row align-items-center g-4">
+            
+            <div class="col-lg-7">
+                <div class="status-pill mb-3">
+                    <span class="pulse-dot"></span>
+                    <span>Scuole Medie & Superiori • Valdisieve e Online</span>
+                </div>
+
+                <h1 class="display-5 fw-extrabold mb-3 lh-sm">
+                    Ripetizioni semplici,<br>
+                    <span class="text-gradient">senza stress.</span>
+                </h1>
+
+                <p class="lead text-body-secondary mb-4" style="font-size: 1.15rem; line-height: 1.6; max-width: 600px;">
+                    Ciao! Sono <strong>Francesco Gori</strong>. Do una mano a ragazzi delle medie e delle superiori con matematica, fisica, chimica, informatica e inglese.
+                    Lo faccio nel tempo libero: ci vediamo online oppure a domicilio qui in zona.
+                </p>
+
+                <div class="d-flex flex-wrap align-items-center gap-3 mb-4">
+                    {% if user.is_authenticated %}
+                        <a href="{% url 'prenota' %}" class="btn btn-primary px-4 py-2 fw-bold">
+                            <i class="bi bi-calendar-plus me-2"></i>Prenota Lezione
+                        </a>
+                        <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary px-4 py-2">
+                            <i class="bi bi-grid me-2"></i>La tua Dashboard
+                        </a>
+                    {% else %}
+                        <a href="{% url 'login' %}" class="btn btn-primary px-4 py-2 fw-bold">
+                            <i class="bi bi-box-arrow-in-right me-2"></i>Accedi
+                        </a>
+                        <a href="{% url 'register' %}" class="btn btn-outline-secondary px-4 py-2">
+                            <i class="bi bi-person-plus me-2"></i>Crea Account
+                        </a>
+                    {% endif %}
+                </div>
+
+                <div class="d-flex flex-wrap gap-3 text-body-secondary small pt-1">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-clock text-primary"></i>
+                        <span>Slot ogni 15 min (da 1h in su)</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-laptop text-primary"></i>
+                        <span>Online o a casa tua</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-arrow-repeat text-primary"></i>
+                        <span>Disdici fino a 48h prima</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tutor Card Preview -->
+            <div class="col-lg-5">
+                <div class="tutor-card p-4 mx-auto" style="max-width: 420px;">
+                    
+                    <div class="d-flex align-items-center gap-3 mb-3 pb-3 border-bottom">
+                        <div class="brand-icon" style="width:42px;height:42px;font-size:1.1rem;">
+                            <i class="bi bi-person-check-fill"></i>
+                        </div>
+                        <div>
+                            <h6 class="fw-bold mb-0">Francesco Gori</h6>
+                            <small class="text-body-secondary">Ripetizioni Medie & Superiori</small>
+                        </div>
+                        <span class="badge bg-success-subtle text-success border border-success-subtle ms-auto small">
+                            Disponibile
+                        </span>
+                    </div>
+
+                    <div class="p-3 rounded-3 bg-body-tertiary border mb-3 small">
+                        <div class="fw-semibold text-body mb-2">Come ci organizziamo:</div>
+                        <ul class="list-unstyled mb-0 d-flex flex-column gap-2 text-body-secondary">
+                            <li class="d-flex align-items-start gap-2">
+                                <i class="bi bi-calendar3 text-primary mt-1"></i>
+                                <span><strong>Scegli l'orario:</strong> prenoti direttamente dal sito in base alle disponibilità.</span>
+                            </li>
+                            <li class="d-flex align-items-start gap-2">
+                                <i class="bi bi-geo-alt text-danger mt-1"></i>
+                                <span><strong>Dove preferisci:</strong> a casa tua in Valdisieve oppure online con lavagna grafica.</span>
+                            </li>
+                            <li class="d-flex align-items-start gap-2">
+                                <i class="bi bi-shield-check text-success mt-1"></i>
+                                <span><strong>Se hai un imprevisto:</strong> puoi cancellare da solo dalla dashboard fino a 48h prima.</span>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div class="text-center">
+                        {% if user.is_authenticated %}
+                            <a href="{% url 'prenota' %}" class="btn btn-primary w-100 py-2">
+                                <i class="bi bi-plus-circle me-1"></i> Richiedi un orario
+                            </a>
+                        {% else %}
+                            <a href="{% url 'login' %}" class="btn btn-primary w-100 py-2">
+                                Accedi per prenotare
+                            </a>
+                        {% endif %}
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- 2. LE MATERIE -->
+<section class="py-5 bg-body">
+    <div class="container">
+        
+        <div class="mb-4 text-center text-md-start">
+            <h3 class="fw-bold mb-1">Le materie che seguo</h3>
+            <p class="text-body-secondary small mb-0">
+                Programmi di medie e superiori. Spiegazioni pratiche, esercizi insieme e chiarimento dei dubbi.
+            </p>
+        </div>
+
+        <div class="row g-3">
+            
+            <div class="col-6 col-md-4 col-lg-2">
+                <div class="materia-pill-card">
+                    <div class="materia-icon bg-primary-subtle text-primary">
+                        <i class="bi bi-calculator"></i>
+                    </div>
+                    <h6 class="fw-bold mb-1">Matematica</h6>
+                    <small class="text-body-secondary d-block" style="font-size:0.8rem;">Algebra, Geometria, Funzioni</small>
+                </div>
+            </div>
+
+            <div class="col-6 col-md-4 col-lg-2">
+                <div class="materia-pill-card">
+                    <div class="materia-icon bg-warning-subtle text-warning-emphasis">
+                        <i class="bi bi-lightning-charge"></i>
+                    </div>
+                    <h6 class="fw-bold mb-1">Fisica</h6>
+                    <small class="text-body-secondary d-block" style="font-size:0.8rem;">Cinematica, Forze, Circuiti</small>
+                </div>
+            </div>
+
+            <div class="col-6 col-md-4 col-lg-2">
+                <div class="materia-pill-card">
+                    <div class="materia-icon bg-success-subtle text-success">
+                        <i class="bi bi-droplet-half"></i>
+                    </div>
+                    <h6 class="fw-bold mb-1">Chimica</h6>
+                    <small class="text-body-secondary d-block" style="font-size:0.8rem;">Reazioni, Stechiometria</small>
+                </div>
+            </div>
+
+            <div class="col-6 col-md-4 col-lg-2">
+                <div class="materia-pill-card">
+                    <div class="materia-icon bg-info-subtle text-info">
+                        <i class="bi bi-code-slash"></i>
+                    </div>
+                    <h6 class="fw-bold mb-1">Informatica</h6>
+                    <small class="text-body-secondary d-block" style="font-size:0.8rem;">Python, C/C++, Logica</small>
+                </div>
+            </div>
+
+            <div class="col-6 col-md-4 col-lg-2">
+                <div class="materia-pill-card">
+                    <div class="materia-icon bg-danger-subtle text-danger">
+                        <i class="bi bi-globe-europe-africa"></i>
+                    </div>
+                    <h6 class="fw-bold mb-1">Inglese</h6>
+                    <small class="text-body-secondary d-block" style="font-size:0.8rem;">Grammatica e Verifiche</small>
+                </div>
+            </div>
+
+            <div class="col-6 col-md-4 col-lg-2">
+                <div class="materia-pill-card">
+                    <div class="materia-icon bg-secondary-subtle text-secondary">
+                        <i class="bi bi-tree"></i>
+                    </div>
+                    <h6 class="fw-bold mb-1">Scienze</h6>
+                    <small class="text-body-secondary d-block" style="font-size:0.8rem;">Biologia e Terra</small>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Note su materie multiple -->
+        <div class="mt-3 p-3 rounded-3 bg-body-tertiary border d-flex align-items-center gap-2 small text-body-secondary">
+            <i class="bi bi-info-circle-fill text-primary"></i>
+            <span>
+                <strong>Più materie insieme?</strong> Nessun problema: se hai due verifiche vicine (es. Matematica e Fisica), possiamo fare una lezione combinata. Scrivilo pure nelle note quando prenoti!
+            </span>
+        </div>
+
+    </div>
+</section>
+
+<!-- 3. COME FUNZIONA & DOVE SIAMO (Snello a due colonne) -->
+<section class="py-5 bg-body-tertiary border-top border-bottom">
+    <div class="container">
+        <div class="row g-4">
+            
+            <!-- Come funziona -->
+            <div class="col-lg-6">
+                <div class="chill-card h-100">
+                    <h4 class="fw-bold mb-3">Come funziona</h4>
+                    <div class="d-flex flex-column gap-3">
+                        <div class="d-flex gap-3 align-items-start">
+                            <div class="step-circle">1</div>
+                            <div>
+                                <h6 class="fw-bold mb-1">Entra o registrati</h6>
+                                <p class="text-body-secondary small mb-0">Bastano nome ed email per accedere alla tua area personale.</p>
+                            </div>
+                        </div>
+
+                        <div class="d-flex gap-3 align-items-start">
+                            <div class="step-circle">2</div>
+                            <div>
+                                <h6 class="fw-bold mb-1">Scegli giorno, orario e durata</h6>
+                                <p class="text-body-secondary small mb-0">Seleziona uno slot libero (minimo 1 ora, poi a scaglioni di 30 minuti).</p>
+                            </div>
+                        </div>
+
+                        <div class="d-flex gap-3 align-items-start">
+                            <div class="step-circle">3</div>
+                            <div>
+                                <h6 class="fw-bold mb-1">Facciamo lezione</h6>
+                                <p class="text-body-secondary small mb-0">Ti arriva la conferma via mail. Dalla dashboard tieni traccia di tutto.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dove facciamo lezione -->
+            <div class="col-lg-6">
+                <div class="chill-card h-100">
+                    <h4 class="fw-bold mb-3">Dove ci vediamo</h4>
+                    <div class="d-flex flex-column gap-2">
+                        <div class="location-tag">
+                            <span class="fs-5">🏠</span>
+                            <div>
+                                <div class="fw-semibold">Online / Casa Mia</div>
+                                <small class="text-body-secondary">Online con tavoletta grafica (appunti in PDF) o da me a Rufina</small>
+                            </div>
+                        </div>
+
+                        <div class="location-tag">
+                            <span class="fs-5">🚶</span>
+                            <div>
+                                <div class="fw-semibold">Rufina Paese</div>
+                                <small class="text-body-secondary">A domicilio direttamente a casa tua</small>
+                            </div>
+                        </div>
+
+                        <div class="location-tag">
+                            <span class="fs-5">🚗</span>
+                            <div>
+                                <div class="fw-semibold">Entro 15 min</div>
+                                <small class="text-body-secondary">Montebonello, Scopeti, Pomino</small>
+                            </div>
+                        </div>
+
+                        <div class="location-tag">
+                            <span class="fs-5">🚗</span>
+                            <div>
+                                <div class="fw-semibold">Entro 30 min</div>
+                                <small class="text-body-secondary">Pontassieve, Sieci, Dicomano, Londa</small>
+                            </div>
+                        </div>
+
+                        <div class="location-tag">
+                            <span class="fs-5">❓</span>
+                            <div>
+                                <div class="fw-semibold">Altro (Contattami)</div>
+                                <small class="text-body-secondary">Biblioteche comunali o altre zone concordabili</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- 4. DUE COSE UTILI (FAQ Chill) -->
+<section class="py-5 bg-body">
+    <div class="container" style="max-width: 800px;">
+        
+        <h4 class="fw-bold mb-3 text-center">Un paio di cose utili da sapere</h4>
+
+        <div class="accordion accordion-flush rounded-3 overflow-hidden border" id="faqAccordion">
+            
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button fw-semibold collapsed py-3" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                        Come funzionano le lezioni online?
+                    </button>
+                </h2>
+                <div id="faq1" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                    <div class="accordion-body text-body-secondary small">
+                        Ci colleghiamo su Google Meet (o altra piattaforma). Scrivo su una <strong>tavoletta grafica</strong> che vedi in tempo reale a schermo intero come se fossimo sullo stesso quaderno. A fine lezione esporto tutto e ti mando il <strong>PDF degli appunti</strong> con gli esercizi svolti insieme.
+                    </div>
+                </div>
+            </div>
+
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button fw-semibold collapsed py-3" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                        E se ho un imprevisto e devo disdire?
+                    </button>
+                </h2>
+                <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                    <div class="accordion-body text-body-secondary small">
+                        Nessun problema: ti basta andare nella tua Dashboard e cliccare su <strong>"Cancella"</strong>. L'unica cosa che ti chiedo è di farlo con <strong>almeno 48 ore di anticipo</strong> rispetto all'orario della lezione, in modo da permettermi di riorganizzare gli orari. A me arriva automaticamente una notifica via email.
+                    </div>
+                </div>
+            </div>
+
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button fw-semibold collapsed py-3" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+                        Che durate posso scegliere?
+                    </button>
+                </h2>
+                <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                    <div class="accordion-body text-body-secondary small">
+                        Il minimo è <strong>1 ora</strong>. Se serve più tempo (ad esempio prima di una verifica importante), puoi scegliere lezioni da 1 ora e mezza (1.5h), 2 ore (2.0h) o più, con scaglioni di mezz'ora.
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+</section>
+
+<!-- 5. BOX RAPIDO FINALE -->
+<section class="py-4 border-top bg-body-tertiary">
+    <div class="container text-center py-3" style="max-width: 650px;">
+        <h4 class="fw-bold mb-2">Pronto per la prossima lezione?</h4>
+        <p class="text-body-secondary small mb-3">
+            Accedi con le tue credenziali o registrati se è la prima volta che prenoti.
+        </p>
+        <div class="d-flex justify-content-center gap-2">
+            {% if user.is_authenticated %}
+                <a href="{% url 'prenota' %}" class="btn btn-primary px-4 py-2">
+                    <i class="bi bi-calendar-plus me-1"></i> Prenota ora
+                </a>
+            {% else %}
+                <a href="{% url 'login' %}" class="btn btn-primary px-4 py-2">
+                    Accedi
+                </a>
+                <a href="{% url 'register' %}" class="btn btn-outline-secondary px-4 py-2">
+                    Crea account
+                </a>
+            {% endif %}
+        </div>
+    </div>
+</section>
+
+{% endblock %}

@@ -7,8 +7,11 @@ from django.utils.http import urlencode
 from datetime import timedelta
 from django.utils import timezone
 
+
 class Impostazioni(models.Model):
-    tariffa_base = models.DecimalField(max_digits=5, decimal_places=2, default=10.00, help_text="Prezzo all'ora base")
+    """Configurazione globale dell'app (tariffa base oraria)."""
+    tariffa_base = models.DecimalField(max_digits=5, decimal_places=2, default=10.00,
+                                       help_text="Prezzo all'ora base")
 
     def __str__(self):
         return f"Configurazione (Tariffa: {self.tariffa_base}€)"
@@ -16,13 +19,14 @@ class Impostazioni(models.Model):
     class Meta:
         verbose_name_plural = "Impostazioni"
 
+
 class GiornoChiusura(models.Model):
+    """Periodo di chiusura in cui non si accettano prenotazioni."""
     data_inizio = models.DateField(help_text="Primo giorno di chiusura")
     data_fine = models.DateField(help_text="Ultimo giorno di chiusura", blank=True, null=True)
     motivo = models.CharField(max_length=100, blank=True, help_text="Es. Vacanze Estive")
 
     def save(self, *args, **kwargs):
-        # UX: Se l'utente lascia vuota la fine, assumo sia una chiusura di un solo giorno
         if not self.data_fine:
             self.data_fine = self.data_inizio
         super().save(*args, **kwargs)
@@ -36,7 +40,10 @@ class GiornoChiusura(models.Model):
         verbose_name_plural = "Giorni di Chiusura"
         ordering = ['-data_inizio']
 
+
 class Lezione(models.Model):
+    """Una singola sessione di ripetizioni, con prezzo calcolato automaticamente."""
+
     LUOGO_SCELTE = [
         ('BASE', '🏠 Online / Casa Mia (Tariffa Base)'),
         ('RUFINA', '🚶 Rufina Paese (+2€)'),
@@ -45,59 +52,60 @@ class Lezione(models.Model):
         ('ALTRO', '❓ Altro (Contattami)'),
     ]
 
-    studente = models.ForeignKey(User, on_delete=models.CASCADE, related_name='lezioni')
-    data_inizio = models.DateTimeField(help_text="Giorno e ora inizio")
-    durata_ore = models.DecimalField(max_digits=3, decimal_places=1, default=1.0, help_text="Durata in ore (es. 1.5 per un'ora e mezza)")
-    luogo = models.CharField(max_length=20, choices=LUOGO_SCELTE, default='BASE')
-
     STATO_SCELTE = [
         ('RICHIESTA', 'In attesa di conferma'),
         ('CONFERMATA', 'Confermata'),
         ('RIFIUTATA', 'Rifiutata'),
+        ('CANCELLATA', 'Cancellata dallo studente'),
     ]
-    stato = models.CharField(max_length=20, choices=STATO_SCELTE, default='RICHIESTA')
 
+    EXTRA_PER_LUOGO = {
+        'RUFINA': Decimal('2.00'),
+        'FASCIA_15': Decimal('4.00'),
+        'FASCIA_30': Decimal('8.00'),
+    }
+
+    studente = models.ForeignKey(User, on_delete=models.CASCADE, related_name='lezioni')
+    data_inizio = models.DateTimeField(help_text="Giorno e ora inizio")
+    durata_ore = models.DecimalField(max_digits=3, decimal_places=1, default=1.0,
+                                     help_text="Durata in ore (minimo 1h, poi ogni 0.5h)")
+    luogo = models.CharField(max_length=20, choices=LUOGO_SCELTE, default='BASE')
+    stato = models.CharField(max_length=20, choices=STATO_SCELTE, default='RICHIESTA')
+    materia = models.CharField(max_length=100, blank=True, null=True,
+                               help_text="Es. Matematica, Fisica (anche più di una)")
     prezzo = models.DecimalField(max_digits=6, decimal_places=2, blank=True, null=True)
     pagata = models.BooleanField(default=False)
     note = models.TextField(blank=True, null=True)
 
+    @property
+    def data_fine(self):
+        """Calcola e ritorna l'orario di fine lezione."""
+        return self.data_inizio + timedelta(hours=float(self.durata_ore))
+
+    def _calcola_prezzo(self):
+        """Calcola il prezzo in base alla tariffa dello studente (o globale) e al luogo."""
+        try:
+            tariffa_base = self.studente.profilo.tariffa_specifica or None
+        except AttributeError:
+            tariffa_base = None
+
+        if tariffa_base is None:
+            config = Impostazioni.objects.first()
+            tariffa_base = config.tariffa_base if config else Decimal('10.00')
+
+        extra = self.EXTRA_PER_LUOGO.get(self.luogo, Decimal('0'))
+        return tariffa_base * Decimal(str(self.durata_ore)) + extra
+
     def save(self, *args, **kwargs):
         if self.pk is None or self.prezzo is None:
-
-            tariffa_base_calcolo = None
-            try:
-                if self.studente.profilo.tariffa_specifica:
-                    tariffa_base_calcolo = self.studente.profilo.tariffa_specifica
-            except:
-                pass
-
-            if tariffa_base_calcolo is None:
-                config = Impostazioni.objects.first()
-                tariffa_base_calcolo = config.tariffa_base if config else Decimal(10.00)
-
-            extra = 0
-            if self.luogo == 'RUFINA':
-                extra = 2.00
-            elif self.luogo == 'FASCIA_15':
-                extra = 4.00
-            elif self.luogo == 'FASCIA_30':
-                extra = 8.00
-
-            costo_ore = tariffa_base_calcolo * Decimal(self.durata_ore)
-            self.prezzo = costo_ore + Decimal(extra)
-
+            self.prezzo = self._calcola_prezzo()
         super().save(*args, **kwargs)
 
     def get_google_calendar_url(self):
-        """Genera il link per aggiungere l'evento a Google Calendar"""
-
+        """Genera il link per aggiungere la lezione a Google Calendar."""
         inizio_locale = timezone.localtime(self.data_inizio)
-
-        durata = float(self.durata_ore) if self.durata_ore else 1.0
-        fine_locale = inizio_locale + timedelta(hours=durata)
-
+        fine_locale = timezone.localtime(self.data_fine)
         fmt = "%Y%m%dT%H%M%S"
-
         params = {
             'action': 'TEMPLATE',
             'text': f"Ripetizioni FG: {self.studente.first_name} {self.studente.last_name}",
@@ -107,7 +115,6 @@ class Lezione(models.Model):
             'sprop': 'website:https://francescogori03.eu.pythonanywhere.com',
             'ctz': 'Europe/Rome',
         }
-
         return f"https://calendar.google.com/calendar/render?{urlencode(params)}"
 
     def __str__(self):
@@ -117,7 +124,10 @@ class Lezione(models.Model):
         verbose_name_plural = "Lezioni"
         ordering = ['-data_inizio']
 
+
 class Disponibilita(models.Model):
+    """Fascia oraria disponibile per un dato giorno della settimana."""
+
     GIORNI = [
         (0, 'Lunedì'), (1, 'Martedì'), (2, 'Mercoledì'),
         (3, 'Giovedì'), (4, 'Venerdì'), (5, 'Sabato'), (6, 'Domenica')
@@ -135,11 +145,14 @@ class Disponibilita(models.Model):
 
 
 class Profilo(models.Model):
+    """Dati aggiuntivi associati a ogni utente (telefono, scuola, tariffa personalizzata)."""
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profilo')
-    telefono = models.CharField(max_length=20, blank=True, null=True, help_text="Utile per urgenze (WhatsApp)")
-    indirizzo = models.CharField(max_length=255, blank=True, null=True, help_text="Indirizzo completo (se vengo io da te)")
-    scuola = models.CharField(max_length=100, blank=True, null=True, help_text="Es. Liceo Scientifico, 4° Anno")
-
+    telefono = models.CharField(max_length=20, blank=True, null=True,
+                                help_text="Utile per urgenze (WhatsApp)")
+    indirizzo = models.CharField(max_length=255, blank=True, null=True,
+                                 help_text="Indirizzo completo (se vengo io da te)")
+    scuola = models.CharField(max_length=100, blank=True, null=True,
+                              help_text="Es. Liceo Scientifico, 4° Anno")
     tariffa_specifica = models.DecimalField(
         max_digits=5, decimal_places=2, blank=True, null=True,
         help_text="Se impostata, questa tariffa vince su quella globale."
@@ -151,16 +164,14 @@ class Profilo(models.Model):
     class Meta:
         verbose_name_plural = "Profili"
 
-# Garanzia di consistenza: ogni User DEVE avere un Profilo.
-# Lo creo automaticamente sia al signup che in caso di salvataggi da admin/shell.
-@receiver(post_save, sender=User)
-def create_user_profile(sender, instance, created, **kwargs):
-    if created:
-        Profilo.objects.create(user=instance)
 
 @receiver(post_save, sender=User)
-def save_user_profile(sender, instance, **kwargs):
-    try:
-        instance.profilo.save()
-    except Profilo.DoesNotExist:
+def crea_o_salva_profilo(sender, instance, created, **kwargs):
+    """Assicura che ogni User abbia sempre un Profilo associato."""
+    if created:
         Profilo.objects.create(user=instance)
+    else:
+        try:
+            instance.profilo.save()
+        except Profilo.DoesNotExist:
+            Profilo.objects.create(user=instance)
