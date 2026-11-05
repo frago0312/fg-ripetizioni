@@ -39,6 +39,8 @@ def _parse_data_filtro(valore):
 def landing(request):
     """Pagina pubblica di presentazione del servizio."""
     if request.user.is_authenticated:
+        if request.user.is_staff:
+            return redirect('dashboard_docente')
         return redirect('dashboard')
     return render(request, 'landing.html')
 
@@ -68,6 +70,9 @@ def registrazione(request):
 @login_required
 def dashboard(request):
     """Dashboard studente: mostra lezioni, saldo da pagare e prossima lezione."""
+    if request.user.is_staff:
+        return redirect('dashboard_docente')
+
     lezioni = Lezione.objects.filter(studente=request.user).select_related('studente__profilo')
 
     da_pagare = lezioni.filter(stato='CONFERMATA', pagata=False).aggregate(Sum('prezzo'))['prezzo__sum'] or 0
@@ -84,6 +89,9 @@ def dashboard(request):
 @login_required
 def prenota(request):
     """Form di prenotazione lezione per lo studente."""
+    if request.user.is_staff:
+        return redirect('dashboard_docente')
+
     if request.method == 'POST':
         form = PrenotazioneForm(request.POST)
         if form.is_valid():
@@ -160,6 +168,9 @@ def cancella_lezione(request, lezione_id):
 @login_required
 def profilo_view(request):
     """Visualizza e aggiorna i dati del profilo studente."""
+    if request.user.is_staff:
+        return redirect('dashboard_docente')
+
     profilo, _ = Profilo.objects.get_or_create(user=request.user)
 
     if request.method == 'POST':

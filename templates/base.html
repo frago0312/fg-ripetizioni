@@ -31,6 +31,9 @@
             --orange-wash: rgba(217, 119, 46, 0.15);
             --success: #4b6b4f;
             --success-wash: rgba(75, 107, 79, 0.15);
+            /* Fixed light color for text on colored (bordeaux/success) backgrounds.
+               Not themed: unlike --paper, it must stay light in both light and dark mode. */
+            --on-accent: #f5f1ec;
 
             --radius: 6px;
             --bs-body-bg: var(--paper);
@@ -81,12 +84,12 @@
         .btn-primary {
             background: var(--bordeaux);
             border-color: var(--bordeaux);
-            color: var(--paper);
+            color: var(--on-accent);
         }
         .btn-primary:hover, .btn-primary:focus {
             background: var(--bordeaux-dark);
             border-color: var(--bordeaux-dark);
-            color: var(--paper);
+            color: var(--on-accent);
         }
         .btn-outline-primary {
             color: var(--bordeaux);
@@ -95,7 +98,7 @@
         .btn-outline-primary:hover {
             background: var(--bordeaux);
             border-color: var(--bordeaux);
-            color: var(--paper);
+            color: var(--on-accent);
         }
         .btn-outline-secondary {
             color: var(--ink);
@@ -113,11 +116,12 @@
         .btn-outline-danger:hover {
             background: var(--bordeaux);
             border-color: var(--bordeaux);
-            color: var(--paper);
+            color: var(--on-accent);
         }
         .btn-success {
             background: var(--success);
             border-color: var(--success);
+            color: var(--on-accent);
         }
         .btn-success:hover {
             background: #3b5a3f;
@@ -183,7 +187,7 @@
         }
         .badge-attesa { background: var(--orange-wash); color: var(--ink); }
         .badge-paid { background: var(--success-wash); color: var(--ink); }
-        .badge-unpaid { background: var(--bordeaux); color: var(--paper); }
+        .badge-unpaid { background: var(--bordeaux); color: var(--on-accent); }
         .badge-neutral { background: var(--rule); color: var(--pencil); }
 
         .form-control, .form-select {
@@ -280,15 +284,16 @@
                                 {% endif %}
                             </a>
                         </li>
+                    {% else %}
+                        <li class="nav-item">
+                            <a href="{% url 'dashboard' %}" class="btn btn-sm btn-outline-secondary">Lezioni</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{% url 'profilo' %}" class="nav-link fw-semibold px-2">
+                                {{ user.first_name|default:user.username }}
+                            </a>
+                        </li>
                     {% endif %}
-                    <li class="nav-item">
-                        <a href="{% url 'dashboard' %}" class="btn btn-sm btn-outline-secondary">Lezioni</a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="{% url 'profilo' %}" class="nav-link fw-semibold px-2">
-                            {{ user.first_name|default:user.username }}
-                        </a>
-                    </li>
                     <li class="nav-item">
                         <form action="{% url 'logout' %}" method="post" class="d-inline">
                             {% csrf_token %}
@@ -338,6 +343,8 @@
             <a href="{% url 'landing' %}" class="text-decoration-none" style="color: var(--pencil);">Home</a>
             {% if not user.is_authenticated %}
                 <a href="{% url 'login' %}" class="text-decoration-none" style="color: var(--pencil);">Accedi</a>
+            {% elif user.is_staff %}
+                <a href="{% url 'dashboard_docente' %}" class="text-decoration-none" style="color: var(--pencil);">Registro</a>
             {% else %}
                 <a href="{% url 'dashboard' %}" class="text-decoration-none" style="color: var(--pencil);">Dashboard</a>
             {% endif %}
