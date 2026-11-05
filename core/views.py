@@ -263,7 +263,7 @@ def anteprima_prezzo(request):
     prezzo = tariffa_base * durata + extra
 
     return HttpResponse(
-        f'<span class="badge bg-primary-subtle text-primary-emphasis border border-primary-subtle px-3 py-2 fs-6">'
+        f'<span class="badge badge-attesa">'
         f'Prezzo stimato: <strong>€ {prezzo:.2f}</strong></span>'
     )
 

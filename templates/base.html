@@ -3,187 +3,259 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{% block title %}FG Ripetizioni{% endblock %}</title>
-    <meta name="description" content="Ripetizioni private di Matematica, Fisica, Chimica, Informatica, Inglese e Scienze. Online o in presenza a Rufina, Pontassieve, Dicomano e Valdisieve.">
+    <title>{% block title %}Ripetizioni{% endblock %}</title>
+    <meta name="description" content="Gestione delle ripetizioni: richieste, calendario e pagamenti.">
 
     <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/2997/2997274.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;0,600;0,700;1,500&family=Work+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <script src="https://unpkg.com/htmx.org@1.9.10" defer></script>
 
     <style>
         :root {
-            --font-heading: 'Plus Jakarta Sans', sans-serif;
-            --font-body: 'Inter', sans-serif;
-            --primary-gradient: linear-gradient(135deg, #4f46e5 0%, #6366f1 50%, #2563eb 100%);
-            --primary-glow: rgba(79, 70, 229, 0.25);
-            --accent-gradient: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%);
-            --card-radius: 18px;
-            --btn-radius: 12px;
-            --bs-surface-bg: rgba(255, 255, 255, 0.85);
-            --border-subtle: rgba(0, 0, 0, 0.08);
+            --font-heading: 'Lora', serif;
+            --font-body: 'Work Sans', sans-serif;
+            --font-mono: 'IBM Plex Mono', monospace;
+
+            --paper: #f5f1ec;
+            --ink: #211a1c;
+            --pencil: #5c5550;
+            --rule: #ddd3c8;
+
+            --bordeaux: #6b2737;
+            --bordeaux-dark: #541f2b;
+            --orange: #d9772e;
+            --orange-wash: rgba(217, 119, 46, 0.15);
+            --success: #4b6b4f;
+            --success-wash: rgba(75, 107, 79, 0.15);
+
+            --radius: 6px;
+            --bs-body-bg: var(--paper);
+            --bs-body-color: var(--ink);
         }
         [data-bs-theme="dark"] {
-            --bs-surface-bg: rgba(15, 23, 42, 0.88);
-            --border-subtle: rgba(255, 255, 255, 0.08);
-            --bs-body-bg: #0b0f19;
+            --paper: #1b1719;
+            --ink: #f0ebe5;
+            --pencil: #a79e96;
+            --rule: #3a3335;
+            --bs-body-bg: var(--paper);
+            --bs-body-color: var(--ink);
         }
         body {
             font-family: var(--font-body);
-            transition: background-color 0.3s ease, color 0.3s ease;
+            background-color: var(--paper);
+            color: var(--ink);
             min-height: 100vh;
             display: flex;
             flex-direction: column;
         }
         h1, h2, h3, h4, h5, h6, .font-heading {
             font-family: var(--font-heading);
-            letter-spacing: -0.025em;
-            font-weight: 700;
+            font-weight: 600;
         }
-        .text-gradient {
-            background: var(--primary-gradient);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
+        a { color: var(--bordeaux); }
+        a:hover { color: var(--bordeaux-dark); }
+
         .navbar {
-            background: var(--bs-surface-bg);
-            backdrop-filter: blur(14px);
-            -webkit-backdrop-filter: blur(14px);
-            border-bottom: 1px solid var(--border-subtle);
+            background: var(--paper);
+            border-bottom: 1px solid var(--rule);
             padding: 0.85rem 0;
-            transition: transform 0.3s ease-in-out, background-color 0.3s ease;
-        }
-        @media (max-width: 991.98px) {
-            .navbar-hidden { transform: translateY(-100%); }
         }
         .navbar-brand {
             font-family: var(--font-heading);
-            font-weight: 800;
-            font-size: 1.22rem;
-            letter-spacing: -0.02em;
-            color: var(--bs-body-color) !important;
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: var(--ink) !important;
         }
-        .brand-icon {
-            width: 36px;
-            height: 36px;
-            border-radius: 10px;
-            background: var(--primary-gradient);
-            box-shadow: 0 4px 12px var(--primary-glow);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 1rem;
-            flex-shrink: 0;
+
+        /* Buttons */
+        .btn {
+            border-radius: var(--radius);
+            padding: 0.6rem 1.2rem;
+            font-weight: 600;
+            font-size: 0.95rem;
         }
+        .btn-primary {
+            background: var(--bordeaux);
+            border-color: var(--bordeaux);
+            color: var(--paper);
+        }
+        .btn-primary:hover, .btn-primary:focus {
+            background: var(--bordeaux-dark);
+            border-color: var(--bordeaux-dark);
+            color: var(--paper);
+        }
+        .btn-outline-primary {
+            color: var(--bordeaux);
+            border-color: var(--bordeaux);
+        }
+        .btn-outline-primary:hover {
+            background: var(--bordeaux);
+            border-color: var(--bordeaux);
+            color: var(--paper);
+        }
+        .btn-outline-secondary {
+            color: var(--ink);
+            border-color: var(--ink);
+        }
+        .btn-outline-secondary:hover {
+            background: var(--ink);
+            border-color: var(--ink);
+            color: var(--paper);
+        }
+        .btn-outline-danger {
+            color: var(--bordeaux);
+            border-color: var(--bordeaux);
+        }
+        .btn-outline-danger:hover {
+            background: var(--bordeaux);
+            border-color: var(--bordeaux);
+            color: var(--paper);
+        }
+        .btn-success {
+            background: var(--success);
+            border-color: var(--success);
+        }
+        .btn-success:hover {
+            background: #3b5a3f;
+            border-color: #3b5a3f;
+        }
+        .btn-warning {
+            background: var(--orange);
+            border-color: var(--orange);
+            color: var(--ink);
+        }
+
+        /* Cards used as plain ledger blocks (no shadow, hairline border) */
         .card {
-            border-radius: var(--card-radius);
-            border: 1px solid var(--border-subtle);
-            box-shadow: 0 4px 20px rgba(0,0,0,0.03);
-            background-color: var(--bs-body-bg);
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-            overflow: hidden;
-        }
-        [data-bs-theme="dark"] .card {
-            background-color: #131b2e;
-            box-shadow: 0 4px 24px rgba(0,0,0,0.3);
-        }
-        .card:hover {
-            box-shadow: 0 10px 28px rgba(0,0,0,0.07);
+            border-radius: 10px;
+            border: 1px solid var(--rule);
+            box-shadow: none;
+            background-color: var(--paper);
         }
         .card-header {
             background-color: transparent;
-            border-bottom: 1px solid var(--border-subtle);
+            border-bottom: 1px solid var(--rule);
             font-weight: 600;
-            padding: 1.1rem 1.5rem;
         }
-        .btn {
-            border-radius: var(--btn-radius);
-            padding: 0.65rem 1.3rem;
+
+        /* Ledger row: the base building block for lists of lessons/requests/payments */
+        .ledger-row {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem 0;
+            border-bottom: 1px solid var(--rule);
+            flex-wrap: wrap;
+        }
+        .ledger-row:last-child { border-bottom: none; }
+        .ledger-time {
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            color: var(--pencil);
+        }
+        .ledger-amount {
+            font-family: var(--font-mono);
             font-weight: 600;
-            font-size: 0.95rem;
-            transition: all 0.2s ease;
         }
-        .btn-primary {
-            background: var(--primary-gradient);
-            border: none;
-            box-shadow: 0 4px 14px var(--primary-glow);
-        }
-        .btn-primary:hover {
-            opacity: 0.94;
-            transform: translateY(-1px);
-            box-shadow: 0 6px 20px rgba(79,70,229,0.38);
-            color: white;
-        }
-        .btn-primary:active {
-            transform: translateY(1px);
-        }
-        .badge {
-            border-radius: 999px;
-            padding: 0.45em 0.85em;
-            font-weight: 600;
-            letter-spacing: 0.2px;
-        }
-        .table > :not(caption) > * > * {
-            padding: 1rem;
-            vertical-align: middle;
-            background-color: transparent;
-            color: var(--bs-body-color);
-        }
-        .form-control, .form-select {
-            border-radius: var(--btn-radius);
-            padding: 0.72rem 1rem;
-            border: 1px solid var(--border-subtle);
-            background-color: var(--bs-body-bg);
-            color: var(--bs-body-color);
-            transition: border-color 0.2s ease, box-shadow 0.2s ease;
-        }
-        .form-control:focus, .form-select:focus {
-            box-shadow: 0 0 0 4px var(--primary-glow);
-            border-color: #4f46e5;
-        }
-        .alert {
-            border-radius: var(--btn-radius);
-            border: 1px solid transparent;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.04);
-        }
-        .theme-toggle-btn {
-            width: 38px;
-            height: 38px;
-            border-radius: 10px;
+        .avatar-square {
+            width: 34px;
+            height: 34px;
+            border-radius: 6px;
+            border: 1px solid var(--ink);
             display: flex;
             align-items: center;
             justify-content: center;
-            color: var(--bs-body-color);
-            border: 1px solid var(--border-subtle);
+            font-size: 0.78rem;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        /* Status chips: wash background + ink text, never colored text on paper */
+        .badge {
+            border-radius: 999px;
+            padding: 0.4em 0.8em;
+            font-weight: 600;
+            font-size: 0.78rem;
+        }
+        .badge-attesa { background: var(--orange-wash); color: var(--ink); }
+        .badge-paid { background: var(--success-wash); color: var(--ink); }
+        .badge-unpaid { background: var(--bordeaux); color: var(--paper); }
+        .badge-neutral { background: var(--rule); color: var(--pencil); }
+
+        .form-control, .form-select {
+            border-radius: var(--radius);
+            padding: 0.65rem 0.9rem;
+            border: 1px solid var(--rule);
+            background-color: var(--paper);
+            color: var(--ink);
+        }
+        .form-control:focus, .form-select:focus {
+            box-shadow: 0 0 0 3px var(--orange-wash);
+            border-color: var(--orange);
+        }
+        .form-label { font-weight: 600; font-size: 0.85rem; color: var(--pencil); }
+
+        .alert {
+            border-radius: var(--radius);
+            border: 1px solid var(--rule);
+            background-color: var(--paper);
+        }
+
+        .theme-toggle-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: var(--radius);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--ink);
+            border: 1px solid var(--rule);
             background: transparent;
-            transition: background 0.2s, transform 0.2s;
         }
-        .theme-toggle-btn:hover {
-            background: rgba(0,0,0,0.04);
-            transform: scale(1.05);
+
+        .nav-tabs {
+            border-bottom: 1px solid var(--rule);
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            white-space: nowrap;
         }
-        [data-bs-theme="dark"] .theme-toggle-btn:hover {
-            background: rgba(255,255,255,0.06);
+        .nav-tabs .nav-link {
+            color: var(--pencil);
+            font-weight: 600;
+            border: none;
+            border-bottom: 2px solid transparent;
+            border-radius: 0;
+            padding: 0.85rem 1rem;
         }
+        .nav-tabs .nav-link.active {
+            color: var(--ink);
+            border-bottom-color: var(--bordeaux);
+            background: transparent;
+        }
+
+        .table > :not(caption) > * > * {
+            padding: 0.85rem;
+            vertical-align: middle;
+            background-color: transparent;
+            color: var(--ink);
+            border-bottom-color: var(--rule);
+        }
+
         .htmx-indicator { opacity: 0; transition: opacity 200ms ease-in; }
         .htmx-request .htmx-indicator, .htmx-request.htmx-indicator { opacity: 1; }
     </style>
     {% block extra_head %}{% endblock %}
 </head>
-<body class="bg-body-tertiary">
+<body>
 
-<nav class="navbar navbar-expand-lg sticky-top" id="mainNavbar">
+<nav class="navbar navbar-expand-lg sticky-top">
     <div class="container">
-        <a class="navbar-brand d-flex align-items-center gap-2" href="{% url 'landing' %}">
-            <div class="brand-icon">
-                <i class="bi bi-mortarboard-fill"></i>
-            </div>
-            <span>FG<span class="text-primary">Ripetizioni</span></span>
-        </a>
+        <a class="navbar-brand" href="{% url 'landing' %}">Ripetizioni</a>
 
         <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
             <span class="navbar-toggler-icon"></span>
@@ -201,28 +273,26 @@
                 {% if user.is_authenticated %}
                     {% if user.is_staff %}
                         <li class="nav-item">
-                            <a href="{% url 'dashboard_docente' %}" class="btn btn-sm btn-warning fw-bold text-dark d-flex align-items-center gap-2 shadow-sm">
-                                <i class="bi bi-speedometer2"></i> Dashboard Docente
+                            <a href="{% url 'dashboard_docente' %}" class="btn btn-sm btn-outline-primary d-flex align-items-center gap-2">
+                                Registro
                                 {% if num_richieste %}
-                                    <span class="badge bg-dark text-white rounded-circle" style="font-size:0.65rem;">{{ num_richieste }}</span>
+                                    <span class="badge badge-unpaid">{{ num_richieste }}</span>
                                 {% endif %}
                             </a>
                         </li>
                     {% endif %}
                     <li class="nav-item">
-                        <a href="{% url 'dashboard' %}" class="btn btn-sm btn-outline-primary fw-semibold">
-                            <i class="bi bi-grid me-1"></i>Lezioni
-                        </a>
+                        <a href="{% url 'dashboard' %}" class="btn btn-sm btn-outline-secondary">Lezioni</a>
                     </li>
                     <li class="nav-item">
                         <a href="{% url 'profilo' %}" class="nav-link fw-semibold px-2">
-                            <i class="bi bi-person-circle me-1"></i>{{ user.first_name|default:user.username }}
+                            {{ user.first_name|default:user.username }}
                         </a>
                     </li>
                     <li class="nav-item">
                         <form action="{% url 'logout' %}" method="post" class="d-inline">
                             {% csrf_token %}
-                            <button type="submit" class="btn btn-sm btn-outline-danger border-0" title="Esci">
+                            <button type="submit" class="btn btn-sm btn-outline-secondary border-0" title="Esci">
                                 <i class="bi bi-box-arrow-right"></i>
                             </button>
                         </form>
@@ -232,7 +302,7 @@
                         <a href="{% url 'login' %}" class="btn btn-link nav-link text-body fw-semibold px-3">Accedi</a>
                     </li>
                     <li class="nav-item">
-                        <a href="{% url 'register' %}" class="btn btn-primary px-4">Inizia Ora</a>
+                        <a href="{% url 'register' %}" class="btn btn-primary px-4">Registrati</a>
                     </li>
                 {% endif %}
             </ul>
@@ -244,11 +314,11 @@
     {% if messages %}
         <div class="container pt-3">
             {% for message in messages %}
-                <div class="alert alert-{{ message.tags }} alert-dismissible fade show d-flex align-items-center gap-2 shadow-sm" role="alert">
-                    {% if message.tags == 'success' %}<i class="bi bi-check-circle-fill fs-5 text-success"></i>
-                    {% elif message.tags == 'danger' or message.tags == 'error' %}<i class="bi bi-exclamation-triangle-fill fs-5 text-danger"></i>
-                    {% elif message.tags == 'warning' %}<i class="bi bi-exclamation-circle-fill fs-5 text-warning"></i>
-                    {% else %}<i class="bi bi-info-circle-fill fs-5 text-primary"></i>{% endif %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show d-flex align-items-center gap-2" role="alert">
+                    {% if message.tags == 'success' %}<i class="bi bi-check-circle-fill text-success"></i>
+                    {% elif message.tags == 'danger' or message.tags == 'error' %}<i class="bi bi-exclamation-triangle-fill" style="color: var(--bordeaux);"></i>
+                    {% elif message.tags == 'warning' %}<i class="bi bi-exclamation-circle-fill" style="color: var(--orange);"></i>
+                    {% else %}<i class="bi bi-info-circle-fill"></i>{% endif %}
                     <div class="fw-medium">{{ message }}</div>
                     <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
                 </div>
@@ -261,26 +331,15 @@
     </div>
 </main>
 
-<footer class="border-top py-4 mt-auto bg-body text-body-secondary small">
-    <div class="container d-flex flex-column flex-sm-row justify-content-between align-items-center gap-3">
-        <div class="d-flex align-items-center gap-2">
-            <div class="brand-icon" style="width:26px;height:26px;font-size:0.75rem;border-radius:6px;">
-                <i class="bi bi-mortarboard-fill"></i>
-            </div>
-            <span class="fw-bold font-heading text-body">FG Ripetizioni</span>
-            <span class="text-body-tertiary">&copy; 2026</span>
-            <span class="d-none d-md-inline text-body-tertiary">&bull; Ripetizioni con Francesco Gori</span>
-        </div>
+<footer class="border-top py-4 mt-auto small" style="border-color: var(--rule) !important; color: var(--pencil);">
+    <div class="container d-flex flex-column flex-sm-row justify-content-between align-items-center gap-2">
+        <span>Francesco Gori</span>
         <div class="d-flex align-items-center gap-3">
-            <span class="badge bg-primary-subtle text-primary border border-primary-subtle">
-                <i class="bi bi-geo-alt-fill me-1"></i>Valdisieve & Online
-            </span>
-            <a href="{% url 'landing' %}" class="text-decoration-none text-body-secondary">Home</a>
+            <a href="{% url 'landing' %}" class="text-decoration-none" style="color: var(--pencil);">Home</a>
             {% if not user.is_authenticated %}
-                <a href="{% url 'login' %}" class="text-decoration-none text-body-secondary">Accedi</a>
-                <a href="{% url 'register' %}" class="text-decoration-none text-body-secondary">Registrati</a>
+                <a href="{% url 'login' %}" class="text-decoration-none" style="color: var(--pencil);">Accedi</a>
             {% else %}
-                <a href="{% url 'dashboard' %}" class="text-decoration-none text-body-secondary">Dashboard</a>
+                <a href="{% url 'dashboard' %}" class="text-decoration-none" style="color: var(--pencil);">Dashboard</a>
             {% endif %}
         </div>
     </div>
@@ -289,12 +348,12 @@
 <!-- Modal di conferma generico (usato da tutta l'app) -->
 <div class="modal fade" id="confirmModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg" style="border-radius:18px;">
+        <div class="modal-content border-0" style="border-radius:10px;">
             <div class="modal-header border-0 pb-0">
                 <h5 class="modal-title fw-bold" id="confirmModalTitle">Conferma</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body text-body-secondary py-3" id="confirmModalBody"></div>
+            <div class="modal-body py-3" id="confirmModalBody" style="color: var(--pencil);"></div>
             <div class="modal-footer border-0 pt-0">
                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annulla</button>
                 <form id="confirmModalForm" method="post" class="d-inline">
@@ -330,21 +389,6 @@
             try { new bootstrap.Alert(a).close(); } catch(e) {}
         });
     }, 4000);
-
-    // Navbar nascosta su mobile durante lo scroll verso il basso
-    let lastScrollTop = 0;
-    const navbar = document.getElementById('mainNavbar');
-    const navCollapse = document.getElementById('navbarNav');
-    window.addEventListener('scroll', () => {
-        if (window.innerWidth < 992) {
-            if (navCollapse && navCollapse.classList.contains('show')) return;
-            const st = window.pageYOffset || document.documentElement.scrollTop;
-            navbar.classList.toggle('navbar-hidden', st > lastScrollTop && st > 50);
-            lastScrollTop = st <= 0 ? 0 : st;
-        } else {
-            navbar.classList.remove('navbar-hidden');
-        }
-    });
 
     // Modal di conferma generico
     document.addEventListener('click', e => {

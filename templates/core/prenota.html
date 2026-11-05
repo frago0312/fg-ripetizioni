@@ -1,20 +1,20 @@
 {% extends 'base.html' %}
-{% block title %}Prenota Lezione — FG Ripetizioni{% endblock %}
+{% block title %}Prenota lezione{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-md-8 col-lg-6">
 
-        <div class="d-flex align-items-center mb-4">
-            <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary btn-sm me-3 rounded-circle"
+        <div class="d-flex align-items-center gap-3 mb-4">
+            <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary btn-sm rounded-circle"
                style="width:34px;height:34px;padding:0;display:flex;align-items:center;justify-content:center;">
                 <i class="bi bi-arrow-left"></i>
             </a>
-            <h2 class="fw-bold mb-0">Prenota Lezione</h2>
+            <h2 class="fw-bold mb-0">Prenota lezione</h2>
         </div>
 
-        <div class="card shadow border-0">
-            <div class="card-body p-4">
+        <div class="card">
+            <div class="card-body p-3 p-md-4">
                 <form method="post">
                     {% csrf_token %}
 
@@ -24,60 +24,51 @@
 
                     <div class="mb-3">
                         <div class="d-flex justify-content-between align-items-center mb-1">
-                            <label class="form-label fw-semibold small text-body-secondary mb-0">Data Richiesta</label>
-                            <div id="loading-spinner" class="htmx-indicator small text-primary">
+                            <label class="form-label mb-0">Data richiesta</label>
+                            <div id="loading-spinner" class="htmx-indicator small" style="color: var(--bordeaux);">
                                 <span class="spinner-border spinner-border-sm" role="status"></span> Cerco orari...
                             </div>
                         </div>
                         {{ form.data }}
-                        {% if form.data.errors %}<div class="text-danger small mt-1">{{ form.data.errors }}</div>{% endif %}
+                        {% if form.data.errors %}<div class="small mt-1" style="color: var(--bordeaux);">{{ form.data.errors }}</div>{% endif %}
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label fw-semibold small text-body-secondary">Ora Inizio</label>
+                        <label class="form-label">Ora inizio</label>
                         <select name="ora" id="id_ora" class="form-select">
                             <option value="">— Seleziona prima una data —</option>
                         </select>
-                        {% if form.ora.errors %}<div class="text-danger small mt-1">{{ form.ora.errors }}</div>{% endif %}
+                        {% if form.ora.errors %}<div class="small mt-1" style="color: var(--bordeaux);">{{ form.ora.errors }}</div>{% endif %}
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label fw-semibold small text-body-secondary">Durata (Ore)</label>
+                        <label class="form-label">Durata (ore)</label>
                         {{ form.durata_ore }}
                         <div class="form-text">Minimo 1h, poi ogni mezz'ora (1h30, 2h, …)</div>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label fw-semibold small text-body-secondary">Dove?</label>
+                        <label class="form-label">Dove?</label>
                         {{ form.luogo }}
                     </div>
 
-                    <!-- Anteprima prezzo HTMX -->
                     <div id="anteprima-prezzo" class="mb-3">
-                        <span class="badge bg-body-secondary text-body-secondary border px-3 py-2 fs-6">
-                            Prezzo stimato: <strong>—</strong>
-                        </span>
+                        <span class="badge badge-neutral">Prezzo stimato: <strong>—</strong></span>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label fw-semibold small text-body-secondary">
-                            Materia/e <span class="text-body-tertiary fw-normal">(opzionale)</span>
-                        </label>
+                        <label class="form-label">Materia/e <span class="fw-normal">(opzionale)</span></label>
                         {{ form.materia }}
                         <div class="form-text">Puoi indicarne più di una, es. "Matematica, Fisica"</div>
                     </div>
 
                     <div class="mb-4">
-                        <label class="form-label fw-semibold small text-body-secondary">
-                            Note <span class="text-body-tertiary fw-normal">(opzionale)</span>
-                        </label>
+                        <label class="form-label">Note <span class="fw-normal">(opzionale)</span></label>
                         {{ form.note }}
                         <div class="form-text">Argomento specifico o qualsiasi info utile.</div>
                     </div>
 
-                    <button type="submit" class="btn btn-primary w-100 py-3 fw-bold shadow-sm">
-                        <i class="bi bi-send-fill me-2"></i>Invia Richiesta
-                    </button>
+                    <button type="submit" class="btn btn-primary w-100 py-2">Invia richiesta</button>
                 </form>
             </div>
         </div>
