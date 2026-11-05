@@ -85,7 +85,7 @@ class Lezione(models.Model):
     def _calcola_prezzo(self):
         """Calcola il prezzo in base alla tariffa dello studente (o globale) e al luogo."""
         try:
-            tariffa_base = self.studente.profilo.tariffa_specifica or None
+            tariffa_base = self.studente.profilo.tariffa_specifica
         except AttributeError:
             tariffa_base = None
 

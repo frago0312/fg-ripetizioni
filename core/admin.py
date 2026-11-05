@@ -48,6 +48,11 @@ class LezioneAdmin(admin.ModelAdmin):
             except Lezione.DoesNotExist:
                 old_obj = None
 
+            if old_obj and (obj.durata_ore != old_obj.durata_ore or obj.luogo != old_obj.luogo) \
+                    and obj.prezzo == old_obj.prezzo:
+                # Durata/luogo cambiati ma il prezzo non è stato toccato a mano -> ricalcolo
+                obj.prezzo = obj._calcola_prezzo()
+
             if old_obj and obj.studente.email:
 
                 # Check cambio stato -> CONFERMATA

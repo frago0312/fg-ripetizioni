@@ -7,6 +7,7 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.conf import settings
+from django.db import transaction
 from django.db.models import Sum, Q
 from django.http import HttpResponse
 from django.shortcuts import render, redirect, get_object_or_404
@@ -23,6 +24,16 @@ from .utils import invia_email_custom
 logger = logging.getLogger(__name__)
 
 LIMITE_CANCELLAZIONE_ORE = 48
+
+
+def _parse_data_filtro(valore):
+    """Converte una stringa 'YYYY-MM-DD' in date, o None se assente/non valida."""
+    if not valore:
+        return None
+    try:
+        return datetime.strptime(valore, "%Y-%m-%d").date()
+    except ValueError:
+        return None
 
 
 def landing(request):
@@ -76,9 +87,29 @@ def prenota(request):
     if request.method == 'POST':
         form = PrenotazioneForm(request.POST)
         if form.is_valid():
-            lezione = form.save(commit=False)
-            lezione.studente = request.user
-            lezione.save()
+            inizio = form.cleaned_data['data_inizio_calcolata']
+            fine = inizio + timedelta(hours=float(form.cleaned_data['durata_ore']))
+
+            with transaction.atomic():
+                # Riverifica (lockando le righe del giorno) che nessun altro abbia
+                # prenotato lo stesso slot nel frattempo, per chiudere la finestra di
+                # race condition tra la validazione del form e il salvataggio.
+                conflitti = Lezione.objects.select_for_update().filter(
+                    stato__in=['RICHIESTA', 'CONFERMATA'],
+                    data_inizio__date=inizio.date(),
+                    data_inizio__lt=fine,
+                )
+                occupato = any(
+                    inizio < (l.data_inizio + timedelta(hours=float(l.durata_ore))) and fine > l.data_inizio
+                    for l in conflitti
+                )
+                if occupato:
+                    messages.error(request, "Spiacente, questo orario è stato appena prenotato da un altro utente. Scegline un altro.")
+                    return redirect('prenota')
+
+                lezione = form.save(commit=False)
+                lezione.studente = request.user
+                lezione.save()
             try:
                 invia_email_custom(
                     soggetto=f"Nuova Richiesta: {request.user.get_full_name() or request.user.username}",
@@ -152,6 +183,7 @@ def profilo_view(request):
     })
 
 
+@login_required
 def get_orari_disponibili(request):
     """Endpoint HTMX: restituisce gli slot orari liberi per una data, ogni 15 minuti."""
     data_str = request.GET.get('data')
@@ -187,10 +219,10 @@ def get_orari_disponibili(request):
         orari_possibili.append(ora_corrente)
         ora_corrente += timedelta(minutes=15)
 
-    lezioni_giorno = Lezione.objects.filter(
+    lezioni_giorno = list(Lezione.objects.filter(
         data_inizio__date=data_scelta,
         stato__in=['RICHIESTA', 'CONFERMATA']
-    )
+    ))
 
     orari_liberi = []
     for orario in orari_possibili:
@@ -209,6 +241,7 @@ def get_orari_disponibili(request):
     return HttpResponse("".join(orari_liberi))
 
 
+@login_required
 def anteprima_prezzo(request):
     """Endpoint HTMX: calcola e restituisce il prezzo stimato per luogo e durata scelti."""
     from decimal import Decimal
@@ -219,8 +252,12 @@ def anteprima_prezzo(request):
     except Exception:
         durata = Decimal('1.0')
 
-    config = Impostazioni.objects.first()
-    tariffa_base = config.tariffa_base if config else Decimal('10.00')
+    tariffa_specifica = request.user.profilo.tariffa_specifica
+    if tariffa_specifica is not None:
+        tariffa_base = tariffa_specifica
+    else:
+        config = Impostazioni.objects.first()
+        tariffa_base = config.tariffa_base if config else Decimal('10.00')
 
     extra = Lezione.EXTRA_PER_LUOGO.get(luogo, Decimal('0'))
     prezzo = tariffa_base * durata + extra
@@ -292,14 +329,20 @@ def dashboard_docente(request):
     filtro_studente = request.GET.get('studente')
     filtro_dal = request.GET.get('dal')
     filtro_al = request.GET.get('al')
+    data_dal = _parse_data_filtro(filtro_dal)
+    data_al = _parse_data_filtro(filtro_al)
+    if filtro_dal and not data_dal:
+        messages.warning(request, "Data 'dal' non valida, filtro ignorato.")
+    if filtro_al and not data_al:
+        messages.warning(request, "Data 'al' non valida, filtro ignorato.")
 
     passate = Lezione.objects.filter(stato='CONFERMATA', data_inizio__lt=oggi).select_related('studente').order_by('-data_inizio')
     if filtro_studente:
         passate = passate.filter(studente_id=filtro_studente)
-    if filtro_dal:
-        passate = passate.filter(data_inizio__date__gte=filtro_dal)
-    if filtro_al:
-        passate = passate.filter(data_inizio__date__lte=filtro_al)
+    if data_dal:
+        passate = passate.filter(data_inizio__date__gte=data_dal)
+    if data_al:
+        passate = passate.filter(data_inizio__date__lte=data_al)
 
     totale_ore_passate = passate.aggregate(Sum('durata_ore'))['durata_ore__sum'] or 0
     totale_importo_passate = passate.aggregate(Sum('prezzo'))['prezzo__sum'] or 0
@@ -354,6 +397,10 @@ def elimina_chiusura(request, chiusura_id):
 def gestisci_lezione(request, lezione_id, azione):
     """Accetta, rifiuta o segna come pagata una lezione (solo docente)."""
     lezione = get_object_or_404(Lezione, id=lezione_id)
+
+    if azione in ('accetta', 'rifiuta') and lezione.stato != 'RICHIESTA':
+        messages.error(request, "Questa lezione non è più in attesa di conferma.")
+        return redirect('dashboard_docente')
 
     if azione == 'accetta':
         lezione.stato = 'CONFERMATA'
@@ -439,10 +486,12 @@ def export_storico_csv(request):
 
     if request.GET.get('studente'):
         passate = passate.filter(studente_id=request.GET['studente'])
-    if request.GET.get('dal'):
-        passate = passate.filter(data_inizio__date__gte=request.GET['dal'])
-    if request.GET.get('al'):
-        passate = passate.filter(data_inizio__date__lte=request.GET['al'])
+    data_dal = _parse_data_filtro(request.GET.get('dal'))
+    data_al = _parse_data_filtro(request.GET.get('al'))
+    if data_dal:
+        passate = passate.filter(data_inizio__date__gte=data_dal)
+    if data_al:
+        passate = passate.filter(data_inizio__date__lte=data_al)
 
     response = HttpResponse(content_type='text/csv; charset=utf-8')
     response['Content-Disposition'] = 'attachment; filename="storico_lezioni.csv"'

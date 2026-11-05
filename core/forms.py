@@ -115,6 +115,7 @@ class PrenotazioneForm(forms.ModelForm):
 
             conflitti = Lezione.objects.filter(
                 stato__in=['RICHIESTA', 'CONFERMATA'],
+                data_inizio__date=data_scelta,
                 data_inizio__lt=fine_richiesta,
             ).exclude(pk=self.instance.pk if self.instance else None)
 
