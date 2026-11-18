@@ -1,6 +1,7 @@
 import csv
+import json
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
@@ -224,7 +225,11 @@ def get_orari_disponibili(request):
 
     orari_possibili = []
     ora_corrente = datetime.combine(data_scelta, disp.ora_inizio)
-    ora_fine = datetime.combine(data_scelta, disp.ora_fine)
+    if disp.ora_fine == time(0, 0):
+        # Mezzanotte indica la fine della giornata, non l'inizio: va sul giorno successivo.
+        ora_fine = datetime.combine(data_scelta + timedelta(days=1), disp.ora_fine)
+    else:
+        ora_fine = datetime.combine(data_scelta, disp.ora_fine)
 
     while ora_corrente < ora_fine:
         orari_possibili.append(ora_corrente)
@@ -521,3 +526,61 @@ def export_storico_csv(request):
         ])
 
     return response
+
+
+def manifest_json(request):
+    """Web App Manifest, servito dalla radice del sito per poter installare la PWA."""
+    from django.templatetags.static import static as static_url
+    manifest = {
+        "name": "FG Ripetizioni",
+        "short_name": "FG Ripetizioni",
+        "description": "Gestione delle ripetizioni: richieste, calendario e pagamenti.",
+        "start_url": "/",
+        "scope": "/",
+        "display": "standalone",
+        "background_color": "#f5f1ec",
+        "theme_color": "#6b2737",
+        "icons": [
+            {"src": static_url("core/img/icon-192.png"), "sizes": "192x192", "type": "image/png", "purpose": "any"},
+            {"src": static_url("core/img/icon-512.png"), "sizes": "512x512", "type": "image/png", "purpose": "any"},
+            {"src": static_url("core/img/icon-512-maskable.png"), "sizes": "512x512", "type": "image/png", "purpose": "maskable"},
+        ],
+    }
+    return HttpResponse(json.dumps(manifest), content_type="application/manifest+json")
+
+
+def service_worker(request):
+    """Service worker servito dalla radice del sito (serve lo scope '/' per rendere installabile la PWA)."""
+    js = """
+const CACHE_NAME = 'fg-ripetizioni-v1';
+
+self.addEventListener('install', (event) => {
+    self.skipWaiting();
+});
+
+self.addEventListener('activate', (event) => {
+    event.waitUntil(
+        caches.keys().then((keys) =>
+            Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key)))
+        )
+    );
+    self.clients.claim();
+});
+
+// Network-first: l'app ha sempre bisogno di dati aggiornati (prenotazioni, orari).
+// Si fa solo da piccolo fallback offline per la navigazione.
+self.addEventListener('fetch', (event) => {
+    if (event.request.method !== 'GET') return;
+
+    event.respondWith(
+        fetch(event.request)
+            .then((response) => {
+                const copy = response.clone();
+                caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+                return response;
+            })
+            .catch(() => caches.match(event.request))
+    );
+});
+"""
+    return HttpResponse(js, content_type="application/javascript")

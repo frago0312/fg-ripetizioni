@@ -12,6 +12,10 @@ urlpatterns = [
     # Pagina pubblica
     path('', views.landing, name='landing'),
 
+    # PWA: serviti dalla radice per ottenere scope "/"
+    path('manifest.json', views.manifest_json, name='manifest'),
+    path('service-worker.js', views.service_worker, name='service_worker'),
+
     # Area Studente
     path('dashboard/', views.dashboard, name='dashboard'),
     path('prenota/', views.prenota, name='prenota'),

@@ -105,7 +105,11 @@ class PrenotazioneForm(forms.ModelForm):
                 raise forms.ValidationError("In questo giorno non faccio lezione.")
 
             ora_inizio_disp = timezone.make_aware(datetime.datetime.combine(data_scelta, disp.ora_inizio))
-            ora_fine_disp = timezone.make_aware(datetime.datetime.combine(data_scelta, disp.ora_fine))
+            if disp.ora_fine == datetime.time(0, 0):
+                # Mezzanotte indica la fine della giornata, non l'inizio: va sul giorno successivo.
+                ora_fine_disp = timezone.make_aware(datetime.datetime.combine(data_scelta + timedelta(days=1), disp.ora_fine))
+            else:
+                ora_fine_disp = timezone.make_aware(datetime.datetime.combine(data_scelta, disp.ora_fine))
             fine_richiesta = inizio_richiesto + timedelta(hours=float(durata))
 
             if inizio_richiesto < ora_inizio_disp or fine_richiesta > ora_fine_disp:
